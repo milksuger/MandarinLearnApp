@@ -1,0 +1,32 @@
+{
+  "source": "hanzi-writer-data",
+  "version": "2.0.1",
+  "license": "Arphic Public License",
+  "licenseFile": "licenses/ARPHICPL.TXT",
+  "characters": [
+    {
+      "character": "你",
+      "codePoint": "U+4F60",
+      "key": "media/strokes/4F60.json",
+      "strokeCount": 7,
+      "sha256": "21057a26cb5c1753ea710d503b759cc17948263501ffd76ef1737cb2b5d5f966",
+      "sourceVersion": "2.0.1",
+      "sourceUrl": "https://github.com/chanind/hanzi-writer-data",
+      "license": "Arphic Public License",
+      "licenseUrl": "https://github.com/chanind/hanzi-writer-data/blob/master/ARPHICPL.TXT",
+      "copiedUnmodified": true
+    },
+    {
+      "character": "好",
+      "codePoint": "U+597D",
+      "key": "media/strokes/597D.json",
+      "strokeCount": 6,
+      "sha256": "c9f085fe6519e2b2c9653c7edf51bdbc78339fcc0b10f94c1f33c7f4f4d4a3a5",
+      "sourceVersion": "2.0.1",
+      "sourceUrl": "https://github.com/chanind/hanzi-writer-data",
+      "license": "Arphic Public License",
+      "licenseUrl": "https://github.com/chanind/hanzi-writer-data/blob/master/ARPHICPL.TXT",
+      "copiedUnmodified": true
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "formatVersion": 1,
+  "assets": [
+    {
+      "id": "audio-nihao",
+      "text": "你好",
+      "pinyin": "nǐ hǎo",
+      "sourceFile": "third_party/audio_sources/commons-zh-nihao-original.ogg",
+      "sourceSha256": "f87ad432d8ec6f81b4970782d65db7bb33e52818f98e98168020f6085ec2fd80",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Zh_n%C7%90_h%C7%8Eo.ogg",
+      "readingReference": "https://en.wiktionary.org/wiki/n%C7%90_h%C7%8Eo",
+      "creator": "Sjors Provoost",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+      "speakerIdentity": "not stated",
+      "productFile": "public/media/audio/commons-zh-nihao.mp3",
+      "productSha256": "4b49eb40e5981810dffbef2bcd15999345ce6c2e62ac274b1a7601a5c0841bd2",
+      "durationMs": 1123,
+      "transformation": "FFmpeg 2013/libmp3lame CBR 128 kbit/s mono 22050 Hz; lossy compatibility transcode, no speech editing"
+    },
+    {
+      "id": "audio-character-ni",
+      "text": "你",
+      "pinyin": "nǐ",
+      "sourceFile": "third_party/audio_sources/commons-zh-ni-original.ogg",
+      "sourceSha256": "e8218d402c238c66f83252592d3e292e2f2bf1054a1dd138faeaa2d6afa4d570",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Zh-n%C7%90.ogg",
+      "creator": "Wei Gao and Vion Nicolas",
+      "license": "CC BY 2.0 fr",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0/fr/deed.en",
+      "speakerIdentity": "Commons description identifies a Beijing speaker",
+      "productFile": "public/media/audio/commons-zh-ni.mp3",
+      "productSha256": "2ffc2472805ddcf022967b7ceff36c3989afe9a5a1d1e0745cfcc38fa4a2ef25",
+      "durationMs": 1228,
+      "transformation": "FFmpeg 2013/libmp3lame CBR 128 kbit/s mono 22050 Hz; lossy compatibility transcode, no speech editing"
+    }
+  ]
+}

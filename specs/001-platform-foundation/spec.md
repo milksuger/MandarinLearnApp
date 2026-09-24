@@ -59,14 +59,14 @@ New public registrations receive learner permissions only. Admin authorization i
 ### 5.3 Pronunciation
 
 - No runtime cloud TTS, paid API, or device Web Speech fallback.
-- Learner playback accepts only an approved, licensed, versioned audio asset attached to the exact contextual reading and displayed text.
+- Learner playback accepts only an approved, licensed, versioned audio asset attached to the exact contextual reading and displayed text. Approval may come from a recorded source/license verification for an unchanged upstream asset, or individual pronunciation review; source verification must never be presented as official pronunciation certification.
 - If no approved audio exists, show the correct tone-marked Pinyin and “Audio belum tersedia”; retry never substitutes an unreviewed voice.
-- Store candidate/approved/rejected/replaced status, source or recording process, voice/model/checkpoint when applicable, usage terms, hash, duration, reviewer, review timestamp, and content version.
+- Store candidate/approved/rejected/replaced status, source or recording process, voice/model/checkpoint when applicable, usage terms, hash, duration, pronunciation review state, source attestation, reviewer, review timestamp, and content version. Keep admin review and takedown available even for source-attested assets.
 - Admin candidate preview is distinct from learner playback and is audit-logged when approval changes.
 
 ### 5.4 Writing and recognition
 
-- Guided stroke animation and stroke-order assessment use versioned stroke data with independent provenance/license metadata.
+- Guided stroke animation and stroke-order assessment use versioned stroke data with independent provenance/license metadata. An unchanged, licensed upstream dataset may be source-verified and used without a per-character human approval gate; retain admin review/takedown and do not mislabel third-party data as a government standard.
 - The guided evaluator reports stroke order, direction, and shape separately. It must not infer mastery from character identity recognition alone.
 - Freehand recognition is a separate local/offline replaceable engine. Store the engine/data version and categorical outcome. Never display an uncalibrated numeric confidence or turn uncertainty into pass/fail.
 - Raw stroke paths remain in memory for the current assessment and are discarded by default. Consented diagnostic samples require purpose, expiry, revocable consent, and audited access.
@@ -107,7 +107,7 @@ New public registrations receive learner permissions only. Admin authorization i
 - The learner can use the phone layout without horizontal scrolling; iPad 8 portrait and landscape keep a large writing canvas and usable third-party stylus/finger input.
 - Registration/sign-in, authenticated server progress, same-origin API, and a second-device sign-in are supported; local attempts never become canonical until acknowledged by the server.
 - Attempt synchronization is idempotent and visibly reports offline/pending/synced states.
-- No unapproved sound can reach learner playback; no sound output is shown as an audio-verified state without asset provenance and review.
+- No sound without exact reading context and verified reuse provenance or an individual pronunciation review can reach learner playback; source verification is never labeled as official pronunciation certification.
 - Guided stroke validation and freehand identity recognition are separate interfaces and stored results.
 - HSK has versioned levels 1–9, and everyday-topic placements coexist on the same content IDs.
 - Admin profile reads are role-checked and audited; routine access does not reveal raw attempts.
