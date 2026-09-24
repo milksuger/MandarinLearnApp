@@ -14,7 +14,7 @@ This repository is in the product-design stage. The current deliverable is a Goo
 
 ## Platforms
 
-The product is planned as a responsive web app for desktop, phone, and iPad, with special attention to stylus writing on iPad (8th generation). Accounts and server-backed progress synchronization are required. Local storage may cache lessons and queue offline attempts, but the server remains the canonical account record.
+The learner app targets phones and tablets only, with special attention to stylus writing on iPad (8th generation); a learner-facing PC layout is out of scope. The protected administrator portal is designed for PC browsers. Accounts and server-backed progress synchronization are required. Local storage may cache lessons and queue offline attempts, but the server remains the canonical account record.
 
 ## Sources and licensing
 

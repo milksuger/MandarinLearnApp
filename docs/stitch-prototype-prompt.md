@@ -25,7 +25,7 @@ The same word and character can appear in both paths. Do not present the product
 
 ### Non-negotiable product requirements
 
-- The learner must sign in. Their account, learning progress, and practice history synchronize through the server across phone, iPad, and desktop.
+- The learner must sign in. Their account, learning progress, and practice history synchronize through the server across phones and tablets. Do not design or optimize a learner-facing PC layout.
 - The app may cache lessons and approved audio for offline study. If attempts are made offline, show that they are queued and pending server sync. The device is not the canonical account database.
 - Include a protected administrator area for observing usage and content quality, with a searchable learner directory and a detailed, audited individual progress profile.
 - The learner-facing app must have no subscription wall, lesson quota, or feature paywall.
@@ -34,24 +34,25 @@ The same word and character can appear in both paths. Do not present the product
 - The interface language is Bahasa Indonesia. Learning content includes Simplified Hanzi, tone-marked Pinyin, and concise Indonesian meanings and instructions.
 - Audio must be tied to an approved reading and context. Never play an unverified voice just to avoid silence. If no verified audio is available, keep the tone-marked Pinyin visible and provide a clear retry or unavailable state.
 - Distinguish guided stroke practice from freehand writing recognition. Recognition may be uncertain; provide a retry or guided-practice route instead of falsely marking uncertain work as correct or incorrect.
-- Treat the attached Super Chinese screenshot only as context for the vocabulary-to-writing flow and the frustration caused by a lesson paywall. Create an original identity and layout. Do not reproduce that product's branding, logo, colors, or exact composition.
+- Treat the attached Super Chinese screenshot as an explicit reference for the learning-app visual style and vocabulary-to-writing flow. Learn from its progress treatment, uncluttered practice surface, writing focus, and feedback tone. Ignore the PLUS membership paywall. Create an original identity and layout; do not copy its logo, exact screen composition, proprietary icons, or distinctive assets.
 
-### Target devices and responsive layouts
+### Learner target devices and responsive layouts
 
-Create responsive layouts for all of these:
+Create responsive learner layouts for these mobile and tablet targets only:
 
 - Phone portrait around 390 × 844 px.
 - iPad 8th-generation portrait around 810 × 1080 CSS px.
 - iPad 8th-generation landscape around 1080 × 810 CSS px.
-- Desktop around 1440 × 900 px.
 
-The iPad is the primary writing device. Make its handwriting canvas large and central, and leave room for the learner to rest a hand while using a third-party stylus. Accept stylus, finger, and mouse input. Do not depend on Apple Pencil-only pressure or hover features.
+The iPad is the primary writing device. Make its handwriting canvas large and central, and leave room for the learner to rest a hand while using a third-party stylus. Accept stylus and finger input. Do not depend on Apple Pencil-only pressure or hover features.
 
-Use a two-pane learning layout on iPad landscape and desktop: learning context and feedback in one pane, a large writing area in the other. On iPad portrait, keep the word and audio controls above a large writing area. On phones, use a clear vertical flow. Never require horizontal scrolling.
+Use a two-pane learning layout on iPad landscape: learning context and feedback in one pane, a large writing area in the other. On iPad portrait, keep the word and audio controls above a large writing area. On phones, use a clear vertical flow. Never require horizontal scrolling.
 
-### Visual direction
+### Visual direction and Super Chinese reference
 
-Create a calm, confident study-workbook aesthetic with a warm ivory background, dark ink text, teal/green primary actions, and restrained amber accents for progress and feedback. Use generous whitespace, a clear grid, readable Indonesian text, and crisp Chinese glyph rendering. Keep the style adult and encouraging rather than childish or overly gamified. Use a temporary text wordmark “Belajar Mandarin”; do not invent a detailed logo.
+Use the attached Super Chinese screenshot as an explicit visual-style reference for the learning experience. Carry over its clear lesson hierarchy, visible progress indicator, generous neutral practice surface, prominent writing area, simple audio/answer controls, and friendly completion feedback. For handwriting practice, make the 田字格 canvas the focal point and keep the prompt, Pinyin, and progress easy to scan. The screenshot also contains a PLUS membership paywall: ignore that element completely; this product has no subscriptions or paywalls.
+
+Create an original Belajar Mandarin identity rather than reproducing Super Chinese branding, logo, exact screen composition, proprietary icons, or distinctive assets. Use a calm study-workbook aesthetic: warm neutral surfaces, deep ink/indigo text and writing strokes, teal/green primary actions, and restrained amber progress accents. Keep generous whitespace, a clear grid, readable Indonesian text, crisp Chinese glyph rendering, and an adult, encouraging tone rather than childish or overly gamified decoration. Use a temporary text wordmark “Belajar Mandarin”; do not invent a detailed logo.
 
 Use a consistent type scale and spacing system. Make normal text readable at mobile size. Maintain strong contrast, visible keyboard focus, accessible labels for icon buttons, and touch targets of at least 44 px/pt. Do not rely on color alone to signal success or errors. Respect larger text and reduced-motion preferences. Use hover only as an enhancement; every action must work with tap, stylus, or keyboard.
 
@@ -65,7 +66,7 @@ Use a simple, predictable navigation structure:
 - Progress
 - Profile
 
-On phones, use a compact bottom navigation with no more than five items. On iPad and desktop, use a side navigation or a spacious top navigation that leaves the study canvas uncluttered.
+On phones, use a compact bottom navigation with no more than five items. On iPad, use a side navigation or a spacious top navigation that leaves the study canvas uncluttered.
 
 ### Screens and connected flows to generate
 
@@ -134,7 +135,7 @@ Allow the learner to open the character details and start writing practice. Do n
 
 #### 6. Guided character practice
 
-Design this screen especially for iPad landscape, with a responsive phone version.
+Design this screen especially for iPad landscape, with responsive iPad portrait and phone versions.
 
 Show:
 
@@ -252,7 +253,7 @@ Keep Chinese text and tone-marked Pinyin visually distinct but readable. Never d
 
 ### Prototype delivery
 
-Generate a connected prototype, not a set of unrelated mockups. Include the main learner flow from sign-in through a writing session and review, plus a separate protected admin flow. Create responsive variants for phone, iPad portrait, iPad landscape, and desktop. Show key interaction states for stylus writing, uncertain recognition, audio playback failure, offline attempts, and server synchronization.
+Generate a connected prototype, not a set of unrelated mockups. Include the main learner flow from sign-in through a writing session and review, plus a separate protected admin flow. Create learner variants for phone, iPad portrait, and iPad landscape. Create the admin flow for PC desktop, with a usable iPad layout if practical. Do not create a learner-facing desktop layout. Show key interaction states for stylus writing, uncertain recognition, audio playback failure, offline attempts, and server synchronization.
 
 For the complete admin navigation, individual learner profile, content provenance, speech/writing quality, and audit/privacy screens, use the separate [administrator portal Stitch prompt](admin-stitch-prompt.md).
 
@@ -264,6 +265,6 @@ Use consistent components and spacing across screens. Make the writing canvas th
 
 ## Inputs to attach in Stitch
 
-- Optionally attach the supplied Super Chinese screenshot as a behavior reference only.
+- Attach the supplied Super Chinese screenshot as a visual-style and learning-flow reference. Use it to guide visual hierarchy and the writing-practice mood; ignore the PLUS paywall and create original branded screens.
 - Do not attach private account data, credentials, or learner audio.
 - After Stitch generates the prototype, review it on iPad 8th-generation portrait and landscape sizes before using it as the implementation reference.

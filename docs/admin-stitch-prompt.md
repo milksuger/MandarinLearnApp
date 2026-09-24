@@ -32,10 +32,11 @@ You are a senior product designer designing a polished, secure, responsive admin
 
 ### Visual system and responsive behavior
 
-- Keep the learner product’s visual identity: warm ivory surfaces, dark ink text, teal/green actions, restrained amber progress accents, calm notebook-like structure, and an adult, respectful tone.
+- Use the attached Super Chinese screenshot as an explicit visual-style reference for the shared product identity: polished and approachable learning UX, clear progress cues, uncluttered light surfaces, crisp Chinese writing, simple controls, and encouraging feedback. Ignore its PLUS membership paywall; this product has no subscription or paid features.
+- Adapt that reference into an original admin visual system rather than copying Super Chinese branding, logo, exact screen composition, proprietary icons, or distinctive assets. Carry over the learner app’s warm neutral surfaces, deep ink/indigo text, teal/green actions, restrained amber status accents, and calm notebook-like structure. Keep the tone adult and respectful.
 - Admin screens should feel focused and information-dense without looking like a generic dark-mode SaaS template. Use a clear typographic hierarchy, strong table alignment, readable chart labels, and generous enough spacing for long Indonesian words.
 - Default admin interface language: Bahasa Indonesia. Include a language switch for Simplified Chinese. Keep Hanzi and tone-marked Pinyin visually distinct in content-review screens.
-- Primary design frame: desktop 1440 × 900. Also create a usable iPad 8th-generation landscape and portrait layout, plus a narrow phone layout. On small screens, convert data tables to readable learner cards with the important status and action visible; do not force horizontal scrolling.
+- Required primary design frame: PC desktop 1440 × 900. Also create a usable iPad 8th-generation landscape and portrait layout where practical. A phone admin layout is out of scope for the first release. On tablet widths, convert data tables to readable learner cards with the important status and action visible; do not force horizontal scrolling.
 - Make controls keyboard-accessible with visible focus, accessible names, 44 px/pt minimum touch targets, non-color status labels, and reduced-motion support.
 - Provide connected routes and interaction states: loading, empty, filtered-no-results, error/retry, success, access denied, session expired, and offline/read-only where relevant.
 
@@ -86,7 +87,7 @@ Show privacy-minimized rows/cards with:
 
 Do not collapse progress into one “mastered/not mastered” badge. Distinguish “needs practice” from “recognition uncertain.” Make the privacy/access-log notice visible near the table.
 
-Include empty, loading, API-error, no-results, and phone-card states. Do not add bulk actions that alter or delete learner accounts.
+Include empty, loading, API-error, and no-results states, plus a tablet-card variant. Do not add bulk actions that alter or delete learner accounts.
 
 ### Screen 4 — Individual learner progress profile
 
@@ -96,7 +97,7 @@ Organize the profile into clear sections or tabs:
 
 **A. Account and sync summary**
 
-- Account state, created date, last active, last successful sync, current sync issues, and enrolled devices shown only by generic type (for example, tablet/phone/desktop).
+- Account state, created date, last active, last successful sync, current sync issues, and enrolled learner devices shown only by generic type (for example, tablet/phone).
 - Masked contact details. No password, token, or sensitive authentication information.
 
 **B. Curriculum progress**
@@ -202,7 +203,7 @@ Offer Simplified Chinese equivalents through the admin-language selector. Preser
 
 ### Prototype delivery
 
-Generate one connected administrator prototype with working navigation from overview → learner directory → an individual learner profile → a specific curriculum/activity detail → the audit event for opening that profile. Also connect content review → audio review and recognition-quality views. Show responsive desktop, iPad portrait/landscape, and phone adaptations, plus the required loading, no-data, error, access-denied, offline, uncertain-recognition, and privacy-request states.
+Generate one connected administrator prototype with working navigation from overview → learner directory → an individual learner profile → a specific curriculum/activity detail → the audit event for opening that profile. Also connect content review → audio review and recognition-quality views. Design PC desktop as the required admin target and include iPad portrait/landscape adaptations; do not spend time on a phone admin layout. Include the required loading, no-data, error, access-denied, offline, uncertain-recognition, and privacy-request states.
 
 Use realistic but clearly fictional mock data. Do not copy any existing product’s branding or exact layout. Do not invent accuracy guarantees, speech-provider guarantees, personal learner details, or licensing claims. Make it clear that individual profile views are authorized and audited.
 
@@ -212,6 +213,6 @@ Use realistic but clearly fictional mock data. Do not copy any existing product�
 
 ## Suggested Stitch inputs
 
-- Optionally attach the existing learner-app prompt as a style and product reference.
+- Attach the learner-app prompt and supplied Super Chinese screenshot as visual-style references. Match the shared app identity while adapting the information hierarchy to a PC management console; ignore the PLUS paywall and do not copy branded assets or exact screens.
 - Do not attach real learner records, contact details, recordings, handwriting, credentials, or production dashboards.
 - Review the individual learner screen, directory, and audit trail together before treating the generated mockups as an implementation specification.
