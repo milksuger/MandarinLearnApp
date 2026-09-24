@@ -23,6 +23,7 @@ The learner app targets phones and tablets only, with special attention to stylu
 ## Current implementation direction
 
 - React + TypeScript + Vite for the mobile/tablet learner PWA and PC-only admin portal.
+- Learner lessons use a short scenario sequence: vocabulary and pronunciation, contextual examples, guided character writing, and recall practice. Recall outcomes sync to D1 and feed the review queue.
 - Cloudflare Workers for the versioned API and D1 for canonical account, curriculum, activity, and audit records.
 - Provider-independent domain/repository contracts and SQL migrations to make a later database move practical.
 - No paid runtime speech, handwriting-recognition, email, or hosting services. Pronunciation playback uses exact contextual recordings whose source/license is verified, or which receive an individual pronunciation review. Missing audio remains unavailable; no synthesized or syllable-spliced fallback is used.

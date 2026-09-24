@@ -16,13 +16,15 @@ The app is a responsive web PWA. Learner layouts target phones and tablets, espe
 - **Owner admin:** views aggregate health, manages roles/content, opens audited individual learner records, and handles privacy requests.
 - **Content/audio reviewer:** reviews source, license, translation, reading context, and audio candidates. This role cannot grant itself owner privileges.
 
+The requested minimum password length is three characters for registration, sign-in input validation, and password reset; the maximum remains 128 characters.
+
 New public registrations receive learner permissions only. Admin authorization is checked by the API for every protected operation; hiding a UI link is not authorization.
 
 ## 3. Main learner journeys
 
 1. Create/sign into an account, learn that progress is account-backed, and set level, chosen path(s), and daily goal.
 2. Continue from Home into a daily-life unit, HSK 2.0 (six levels), or the versioned HSK 3.0 curriculum (three stages, levels 1–9). Keep the two standards separate.
-3. Study a contextual word: see its Simplified form, tone-marked Pinyin, Indonesian sense(s), component characters, examples, and an exact-context audio state.
+3. Follow a short scenario lesson in order: learn contextual vocabulary with Pinyin and exact-context audio, read approved example sentences, practise linked character strokes, then answer a meaning-recall check that updates server-side progress and review scheduling.
 4. Enter guided character practice. Replay/slow the stroke animation, trace/write with a stylus or finger, undo/clear/hint, and receive separate order/direction/shape feedback.
 5. Enter freehand mode only after the guide is hidden. Run local recognition; report candidate/uncertain/abstained outcomes separately from stroke-order judgments.
 6. Save a derived attempt summary and review schedule. When offline, queue an idempotent attempt and show pending sync; after reconnect, acknowledge it once from the server.

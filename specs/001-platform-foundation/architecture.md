@@ -91,6 +91,7 @@ All learner endpoints derive the principal from the verified server session. Adm
 ## 7. Auth and recovery
 
 - Use Better Auth on the Worker with D1 and HTTP-only secure cookies; sign-up defaults to learner.
+- Enforce the current product policy of a three-character minimum password length at the server and mirror it in registration, sign-in, and reset forms; retain the 128-character maximum and authentication rate limits.
 - Password recovery is based on user-held high-entropy recovery code(s), hashed at rest and shown once. Code issuance/rotation requires a fresh authenticated session; reset consumes the code and revokes all sessions.
 - Avoid requiring email sending for registration or recovery. If a free mailer is considered later, it must be optional and fail closed without billing or paid failover.
 - Admin role bootstrap is an operator-controlled one-time command/migration, never an unauthenticated public endpoint.

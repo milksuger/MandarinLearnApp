@@ -27,6 +27,7 @@ Work follows this order so domain and privacy decisions precede UI duplication. 
 
 - [x] Build phone sign-in/onboarding, Home, path chooser, and profile/settings.
 - [x] Build contextual vocabulary/readings/examples and exact-context source-verified audio playback state.
+- [x] Add a staged scenario-lesson flow for vocabulary, examples, guided character writing, and recall; save recall outcomes through the existing server-backed attempt and review pipeline.
 - [x] Build responsive guided practice on mobile and iPad portrait/landscape; support touch/stylus, canvas controls, stroke hints, and separate feedback dimensions.
 - [x] Build freehand recognition state machine, review queue, session summary, and skill/curriculum progress.
 
@@ -47,6 +48,7 @@ Work follows this order so domain and privacy decisions precede UI duplication. 
 
 ## Open decisions that remain gates
 
+- [ ] Expand original, license-clear course content across the remaining HSK levels and add reviewed scenario dialogues; current HSK routes are a structural map and only their first level has published app-authored material.
 - [ ] Which HSK curriculum source may be redistributed, and under what exact terms? Current HSK paths are structural navigation only.
 - [ ] Build and review a repeatable import workflow for the licensed CC-CIDICT daily-life dataset, including its ShareAlike attribution obligations and Indonesian gloss quality.
 - [ ] Which additional native-speaker audio assets can be licensed for the next content release?
