@@ -51,7 +51,7 @@ The final primary provider and backup policy depend on a listening review and th
 
 ## Handwriting recognition scope
 
-Guided stroke practice and freehand recognition are different capabilities. Hanzi Writer provides character animation and guided quiz interactions. Google ML Kit Digital Ink Recognition supports on-device recognition on Android and iOS, but it is a native mobile SDK and does not by itself cover desktop web. A cross-platform web implementation must therefore use a replaceable recognizer/validator design and test real input on Safari/iPadOS, desktop browsers, and phones.
+Guided stroke practice and freehand recognition are different capabilities. Hanzi Writer provides character animation and guided quiz interactions. Google ML Kit Digital Ink Recognition supports on-device recognition on Android and iOS, but it is a native mobile SDK and does not by itself cover desktop web. MyScript iink 4.5 documents Simplified Chinese and a web SDK, but its web recognition is processed through MyScript Cloud or a separately hosted MyScript Server. Cost, service terms, data handling, and accuracy on learner handwriting must be evaluated. Character recognition alone does not prove correct stroke order, so the app still needs a separate stroke validator. A cross-platform implementation must therefore use a replaceable recognizer/validator design and test real input on Safari/iPadOS, desktop browsers, and phones.
 
 For freehand mode, preserve the user's ordered stroke samples and compare the recognized character and stroke sequence with the selected target. Separate the judgments for character identity, stroke order, direction, and shape. When the recognizer is uncertain, ask for a retry or offer guided practice; do not mark the learner wrong or correct without sufficient confidence. Do not claim that character recognition alone proves correct stroke order.
 
@@ -59,7 +59,7 @@ Prototype and implementation acceptance must include finger and third-party styl
 
 ## HSK and course content
 
-The official Chinese Test Service HSK page describes the New HSK framework as three stages and nine levels and links to its examination syllabus. The course model should represent HSK 3.0 levels 1–9 and retain the standard version in every curriculum item. Keep the everyday-vocabulary path independent; both paths can refer to the same reusable content.
+The [official Chinese Test Service HSK page](https://www.chinesetest.cn/hsk) describes the New HSK framework as three stages and nine levels and links to its examination syllabus. The course model should represent HSK 3.0 levels 1–9 and retain the standard version in every curriculum item. Keep the everyday-vocabulary path independent; both paths can refer to the same reusable content.
 
 Create original explanations, examples, and exercises. Before redistributing official or third-party syllabus-derived lists, confirm their reuse terms. Preserve attribution and distinguish officially sourced fields from editorial additions.
 
@@ -85,7 +85,7 @@ Create original explanations, examples, and exercises. Before redistributing off
 - [Cloudflare Workers AI MeloTTS](https://developers.cloudflare.com/workers-ai/models/melotts/) and [Workers AI pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/).
 - [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) documents platform speech synthesis.
 - [ML Kit Digital Ink Recognition](https://developers.google.com/ml-kit/vision/digital-ink-recognition), with [Android](https://developers.google.com/ml-kit/vision/digital-ink-recognition/android) and [iOS](https://developers.google.com/ml-kit/vision/digital-ink-recognition/ios) guides.
-- [MyScript web SDK overview](https://developer.myscript.com/docs/interactive-ink/4.3/web/overview/introduction/) describes web ink capture and recognition APIs. Chinese coverage, cost, service availability, and data terms need evaluation before any selection.
+- [MyScript iink 4.5 supported languages](https://developer.myscript.com/docs/interactive-ink/4.5/overview/text-languages/) lists Simplified Chinese; its [web SDK overview](https://developer.myscript.com/docs/interactive-ink/4.5/web/overview/introduction/) says recognition is processed through MyScript Cloud or MyScript Server. Cost, service availability, data terms, and assessment of stroke order need evaluation before any selection.
 
 ### Cloudflare hosting candidates
 
