@@ -201,7 +201,10 @@ app.get("/api/v1/units/:unitId", async (c) => {
     FROM curriculum_placements p
     LEFT JOIN vocabulary_entries v ON v.id = p.vocabulary_id AND v.status = 'approved'
     LEFT JOIN characters ch ON ch.id = p.character_id AND ch.status = 'approved'
-    LEFT JOIN readings r ON (r.vocabulary_id = v.id OR r.character_id = ch.id) AND r.status = 'approved'
+    LEFT JOIN readings r ON r.id = (SELECT r2.id FROM readings r2
+      WHERE (r2.vocabulary_id = v.id OR r2.character_id = ch.id) AND r2.status = 'approved'
+      ORDER BY CASE WHEN EXISTS (SELECT 1 FROM audio_assets a2 WHERE a2.reading_id = r2.id AND a2.status = 'approved'
+        AND (a2.pronunciation_review = 'passed' OR a2.source_attested_at IS NOT NULL)) THEN 0 ELSE 1 END, r2.id LIMIT 1)
     LEFT JOIN vocabulary_glosses vg ON vg.vocabulary_id = v.id
     LEFT JOIN character_glosses cg ON cg.character_id = ch.id
     LEFT JOIN glosses g ON g.id = COALESCE(vg.gloss_id, cg.gloss_id) AND g.status = 'approved' AND g.locale = 'id'
@@ -219,7 +222,8 @@ app.get("/api/v1/vocabulary/:entryId", async (c) => {
   const [readings, senses, examples, characters] = await Promise.all([
     c.env.DB.prepare(`SELECT r.id, r.context_label AS contextText, r.pinyin_json AS pinyin, r.numbered_pinyin AS numberedPinyin,
       a.id AS audioId, a.duration_ms AS durationMs FROM readings r LEFT JOIN audio_assets a ON a.reading_id = r.id AND a.status = 'approved' AND (a.pronunciation_review = 'passed' OR a.source_attested_at IS NOT NULL)
-      WHERE r.vocabulary_id = ? AND r.status = 'approved'`).bind(entryId).all(),
+      WHERE r.vocabulary_id = ? AND r.status = 'approved'
+      ORDER BY CASE WHEN a.id IS NOT NULL THEN 0 ELSE 1 END, r.id`).bind(entryId).all(),
     c.env.DB.prepare(`SELECT g.id, g.text, g.usage_label AS usageLabel FROM vocabulary_glosses vg JOIN glosses g ON g.id = vg.gloss_id WHERE vg.vocabulary_id = ? AND g.status = 'approved' AND g.locale = 'id'`).bind(entryId).all(),
     c.env.DB.prepare(`SELECT id, simplified_text AS simplifiedText, pinyin_json AS pinyin, numbered_pinyin AS numberedPinyin, translation
       FROM examples WHERE vocabulary_id = ? AND status = 'approved' AND locale = 'id'`).bind(entryId).all(),
@@ -238,7 +242,8 @@ app.get("/api/v1/characters/:characterId", async (c) => {
   const readings = await c.env.DB.prepare(`SELECT r.id, r.context_label AS contextText, r.pinyin_json AS pinyin,
     r.numbered_pinyin AS numberedPinyin, a.id AS audioId, a.duration_ms AS durationMs
     FROM readings r LEFT JOIN audio_assets a ON a.reading_id = r.id AND a.status = 'approved' AND (a.pronunciation_review = 'passed' OR a.source_attested_at IS NOT NULL)
-    WHERE r.character_id = ? AND r.status = 'approved'`).bind(characterId).all();
+    WHERE r.character_id = ? AND r.status = 'approved'
+    ORDER BY CASE WHEN a.id IS NOT NULL THEN 0 ELSE 1 END, r.id`).bind(characterId).all();
   const glosses = await c.env.DB.prepare(`SELECT g.id, g.text, g.usage_label AS usageLabel FROM character_glosses cg JOIN glosses g ON g.id = cg.gloss_id WHERE cg.character_id = ? AND g.status = 'approved' AND g.locale = 'id'`).bind(characterId).all();
   return c.json({ character, readings: readings.results, glosses: glosses.results });
 });
