@@ -39,6 +39,7 @@ async function readVerifiedMedia(c: Context<AppEnv>, key: string, expectedSha256
 const idSchema = z.string().min(1).max(120).regex(/^[a-zA-Z0-9_-]+$/);
 const isoDateSchema = z.string().datetime({ offset: true });
 const dimensionsSchema = z.object({
+  meaningRecall: z.enum(["correct", "needs_practice", "uncertain"]).optional(),
   characterIdentity: z.enum(["recognized", "uncertain", "not_recognized"]).optional(),
   strokeOrder: z.enum(["correct", "needs_practice", "uncertain"]).optional(),
   strokeDirection: z.enum(["correct", "needs_practice", "uncertain"]).optional(),
@@ -197,6 +198,9 @@ app.get("/api/v1/units/:unitId", async (c) => {
   const rows = await c.env.DB.prepare(`SELECT p.id AS placement_id, p.ordinal,
     v.id AS vocabulary_id, v.simplified_form, ch.id AS character_id, ch.hanzi, ch.stroke_count,
     r.id AS reading_id, r.pinyin_json, r.numbered_pinyin,
+    (SELECT e.simplified_text FROM examples e WHERE e.vocabulary_id = v.id AND e.status = 'approved' AND e.locale = 'id' ORDER BY e.id LIMIT 1) AS example_text,
+    (SELECT e.numbered_pinyin FROM examples e WHERE e.vocabulary_id = v.id AND e.status = 'approved' AND e.locale = 'id' ORDER BY e.id LIMIT 1) AS example_pinyin,
+    (SELECT e.translation FROM examples e WHERE e.vocabulary_id = v.id AND e.status = 'approved' AND e.locale = 'id' ORDER BY e.id LIMIT 1) AS example_translation,
     g.text AS gloss, g.usage_label, a.id AS audio_id, a.duration_ms
     FROM curriculum_placements p
     LEFT JOIN vocabulary_entries v ON v.id = p.vocabulary_id AND v.status = 'approved'

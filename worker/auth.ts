@@ -22,7 +22,7 @@ export function createAuth(env: AppBindings, captureResetToken?: (token: string)
     trustedOrigins: env.APP_URL ? [env.APP_URL] : undefined,
     emailAndPassword: {
       enabled: true,
-      minPasswordLength: 12,
+      minPasswordLength: 3,
       maxPasswordLength: 128,
       revokeSessionsOnPasswordReset: true,
       // The no-cost product does not send email. Recovery is explicitly handled
