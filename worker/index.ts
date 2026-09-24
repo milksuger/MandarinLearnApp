@@ -29,7 +29,11 @@ async function readVerifiedMedia(c: Context<AppEnv>, key: string, expectedSha256
   }
   const actual = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))]
     .map((byte) => byte.toString(16).padStart(2, "0")).join("");
-  return actual === expectedSha256.toLowerCase() ? bytes : null;
+  if (actual !== expectedSha256.toLowerCase()) {
+    console.error(JSON.stringify({ category: "media_checksum_mismatch", key, expected: expectedSha256.toLowerCase(), actual, byteLength: bytes.byteLength }));
+    return null;
+  }
+  return bytes;
 }
 
 const idSchema = z.string().min(1).max(120).regex(/^[a-zA-Z0-9_-]+$/);
