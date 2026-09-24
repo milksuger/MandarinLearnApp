@@ -4,17 +4,28 @@ An open-source Mandarin-learning app for Indonesian-speaking learners. The initi
 
 ## Project status
 
-This repository is in the product-design stage. The current deliverable is a Google Stitch prototype prompt and a research/architecture baseline. Application code, licensed content imports, and deployment have not started.
+The project is moving from prototype into a spec-driven implementation. The user-provided Stitch export is the visual reference; the functional and data requirements in `specs/001-platform-foundation/` are the implementation source of truth. Prototype values are fictional and are not production analytics or verified curriculum data.
 
 ## Design documents
 
 - [Google Stitch prototype prompt](docs/stitch-prototype-prompt.md)
 - [Administrator portal Stitch prompt](docs/admin-stitch-prompt.md)
 - [Research and architecture baseline](docs/research-and-architecture-baseline.md)
+- [Stitch export visual reference](docs/stitch-design-reference.md)
+- [Product spec](specs/001-platform-foundation/spec.md)
+- [Architecture decisions](specs/001-platform-foundation/architecture.md)
+- [Implementation order and status](specs/001-platform-foundation/tasks.md)
 
 ## Platforms
 
 The learner app targets phones and tablets only, with special attention to stylus writing on iPad (8th generation); a learner-facing PC layout is out of scope. The protected administrator portal is designed for PC browsers. Accounts and server-backed progress synchronization are required. Local storage may cache lessons and queue offline attempts, but the server remains the canonical account record.
+
+## Current implementation direction
+
+- React + TypeScript + Vite for the mobile/tablet learner PWA and PC-only admin portal.
+- Cloudflare Workers for the versioned API and D1 for canonical account, curriculum, activity, and audit records.
+- Provider-independent domain/repository contracts and SQL migrations to make a later database move practical.
+- No paid runtime speech, handwriting-recognition, email, or hosting services. Pronunciation playback uses only exact, approved audio assets; missing audio remains visibly unavailable. Freehand recognition must be local/offline and report uncertainty honestly.
 
 ## Sources and licensing
 
