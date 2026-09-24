@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router";
-import { Activity, ArrowLeft, ArrowRight, BookOpen, Check, ChevronRight, CircleHelp, Clock3, Cloud, Headphones, Home, Layers3, LogOut, Menu, RotateCcw, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Cloud, Flame, Headphones, Home, Layers3, LogOut, Menu, Pause, Play, RotateCcw, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
 import HanziWriter from "hanzi-writer";
 import OpenCC from "opencc-js/t2cn";
 import { authClient } from "./auth-client";
@@ -10,7 +10,7 @@ import { enqueueAttempt, enqueueRecognition, pendingAttempts, syncOutbox } from 
 type SessionResult = ReturnType<typeof authClient.useSession>;
 type SessionUser = NonNullable<SessionResult["data"]>["user"];
 type UserProfile = { display_name: string; email: string; locale: string; daily_goal_minutes: number; roles?: string[] };
-type Metrics = { learned_items: number; attempts: number; correct: number };
+type Metrics = { learned_items: number; attempts: number; correct: number; streak_days: number };
 type Unit = { id: string; title: string; description: string | null; curriculum_name: string };
 type UnitItem = { placement_id: string; vocabulary_id: string | null; simplified_form: string | null; character_id: string | null; hanzi: string | null; stroke_count: number | null; reading_id: string | null; pinyin_json: string | null; numbered_pinyin: string | null; gloss: string | null; audio_id: string | null; duration_ms: number | null };
 
@@ -67,7 +67,7 @@ function LearnerFrame({ user, isPending }: { user: SessionUser | null; isPending
   }, [user]);
   return <div className="learner-frame">
     <header className="learner-topbar"><Link to="/" className="brand"><span className="brand-mark">文</span><span>Belajar Mandarin</span></Link>
-      <div className="topbar-actions"><SyncPill state={syncState} pending={pending} /><Link aria-label="Profil" to={user ? "/profile" : "/login"} className="avatar">{user ? user.name.slice(0, 1).toUpperCase() : <UserRound size={18} />}</Link></div>
+      <div className="topbar-actions"><SyncPill state={syncState} pending={pending} /><Link aria-label={user ? "Buka profil dan pengaturan" : "Masuk ke akun"} title={user ? "Profil dan pengaturan" : "Masuk"} to={user ? "/profile" : "/login"} className="avatar">{user ? user.name.slice(0, 1).toUpperCase() : <UserRound size={18} />}</Link></div>
     </header>
     <main className="learner-main">{isPending ? <div className="centered-page"><div className="loader" /></div> : <Outlet />}</main>
     <nav className="mobile-nav" aria-label="Navigasi utama">
@@ -78,29 +78,30 @@ function LearnerFrame({ user, isPending }: { user: SessionUser | null; isPending
 
 function SyncPill({ state, pending }: { state: string; pending: number }) {
   const label = state === "synced" ? "Tersinkron" : state === "offline" ? "Offline" : state === "syncing" ? "Menyinkronkan" : state === "signed-out" ? "Belum masuk" : state === "sign-in-required" ? "Masuk untuk sinkron" : `Menunggu sinkron · ${pending}`;
-  return <span className={`sync-pill sync-${state}`}><Cloud size={14} />{label}</span>;
+  return <span className={`sync-pill sync-${state}`} role="status" aria-label={`Sinkronisasi: ${label}`} title={`Sinkronisasi: ${label}`}><Cloud size={14} /><span>{label}</span></span>;
 }
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { data, isPending } = useLearnerSession();
   if (isPending) return <div className="centered-page"><div className="loader" /></div>;
-  if (!data?.user) return <div className="auth-required"><h2>Masuk untuk menyimpan kemajuan</h2><p>Kemajuan belajar tersimpan di akun agar bisa digunakan di perangkat lain.</p><Link className="button button-primary" to="/login">Masuk</Link><Link className="button button-soft" to="/signup">Buat akun</Link></div>;
+  if (!data?.user) return <section className="auth-required" aria-labelledby="auth-gate-title"><div className="auth-gate-art" aria-hidden="true"><span className="gate-spark gate-spark-one">✦</span><span className="gate-character">文</span><span className="gate-bubble">你好!</span><span className="gate-spark gate-spark-two">✧</span></div><div className="auth-gate-copy"><span className="tag">RUANG BELAJAR MANDARIN</span><h2 id="auth-gate-title">Satu karakter hari ini, selangkah lebih dekat.</h2><p>Kemajuanmu tersimpan di akun dan bisa dilanjutkan di ponsel atau iPad.</p><div className="auth-gate-actions"><Link className="button button-primary" to="/signup">Mulai belajar <ArrowRight /></Link><Link className="button button-soft" to="/login">Saya sudah punya akun</Link></div><small>Belajar gratis · dirancang untuk sentuhan dan Apple Pencil</small></div></section>;
   return <>{children}</>;
 }
 
 function HomePage({ user }: { user: SessionUser | null }) {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [dueReviews, setDueReviews] = useState<number | null>(null);
   const [paths, setPaths] = useState<Array<{ id: string; slug: string; name: string; kind: string; description: string | null }>>([]);
   const [error, setError] = useState("");
   useEffect(() => {
     api<{ paths: typeof paths }>("/paths").then((data) => setPaths(data.paths)).catch(() => setError("Tidak dapat memuat jalur belajar."));
-    if (user) api<{ summary: Metrics }>("/progress").then((data) => setMetrics(data.summary)).catch(() => setMetrics(null));
+    if (user) api<{ summary: Metrics; due: number }>("/progress").then((data) => { setMetrics(data.summary); setDueReviews(data.due); }).catch(() => { setMetrics(null); setDueReviews(null); });
   }, [user]);
   const name = user?.name?.trim().split(" ")[0] || "teman";
   return <Protected><div className="home-wrap">
-    <section className="greeting-row"><div><p className="eyebrow">SELAMAT DATANG KEMBALI</p><h1>你好, {name} <span className="wave">✦</span></h1><p className="muted">Setiap guratan membawamu selangkah lebih dekat.</p></div><div className="streak-chip"><Sparkles size={17} /><span><strong>—</strong><small>hari berturut-turut</small></span></div></section>
+    <section className="greeting-row"><div><p className="eyebrow">SELAMAT DATANG KEMBALI</p><h1>你好, {name} <span className="wave">✦</span></h1><p className="muted">Setiap guratan membawamu selangkah lebih dekat.</p></div><div className="streak-chip" title="Jumlah hari belajar berurutan" aria-label={(metrics?.streak_days ?? 0) + " hari belajar berurutan"}><Flame size={18} /><span><strong>{metrics?.streak_days ?? 0}</strong><small>hari belajar beruntun</small></span></div></section>
     <section className="daily-card"><div className="daily-copy"><span className="tag tag-white">TUJUAN HARI INI</span><h2>Belajar sedikit, setiap hari.</h2><p>Mulai dengan beberapa kata yang berguna dalam kehidupan sehari-hari.</p><Link to="/paths" className="button button-dark">Mulai belajar <ArrowRight size={16} /></Link></div><div className="daily-art" aria-hidden="true"><span>山</span><small>shān · gunung</small></div></section>
-    <section className="metric-grid"><MetricCard icon={<BookOpen />} label="Materi dipelajari" value={metrics?.learned_items ?? 0} unit="kata & karakter" /><MetricCard icon={<Activity />} label="Latihan selesai" value={metrics?.attempts ?? 0} unit="semua sesi" /><MetricCard icon={<Clock3 />} label="Ulangi hari ini" value="—" unit="menunggu materi" /></section>
+    <section className="metric-grid"><MetricCard icon={<BookOpen />} label="Materi dipelajari" value={metrics?.learned_items ?? 0} unit="kata & karakter" /><MetricCard icon={<Activity />} label="Latihan selesai" value={metrics?.attempts ?? 0} unit="semua sesi" /><MetricCard icon={<Clock3 />} label="Siap diulang" value={dueReviews ?? 0} unit="kata dan karakter" /></section>
     <div className="section-heading"><div><h2>Jalur belajarmu</h2><p>Belajar dari keseharian atau pilih susunan HSK 2.0 maupun HSK 3.0.</p></div><Link to="/paths" className="text-link">Lihat semua <ChevronRight size={16} /></Link></div>
     {error && <InlineNotice>{error}</InlineNotice>}
     {paths.length ? <div className="path-cards">{paths.map((path) => <PathCard key={path.id} path={path} />)}</div> : <div className="empty-card"><div className="empty-icon"><Layers3 /></div><h3>Jalur materi sedang disiapkan</h3><p>Materi baru akan muncul setelah ditinjau untuk memastikan arti, pelafalan dan sumbernya benar.</p><Link className="button button-soft" to="/paths">Jelajahi jalur belajar <ArrowRight size={16} /></Link></div>}
@@ -133,7 +134,7 @@ function PathPage() {
   const pathName = pathId === "curriculum-hsk-3" ? "HSK 3.0 · 9 tingkat" : pathId === "curriculum-hsk-2" ? "HSK 2.0 · 6 tingkat" : "Keseharian";
   const hskPath = pathId === "curriculum-hsk-3" || pathId === "curriculum-hsk-2";
   useEffect(() => { void api<{ units: typeof units }>(`/paths/${encodeURIComponent(pathId)}/units`).then((data) => setUnits(data.units)).catch(() => setUnits([])); }, [pathId]);
-  return <Protected><div className="page-wrap"><PageBack to="/paths" /><PageTitle eyebrow="JALUR BELAJAR" title={pathName || "Susunan materi"} subtitle={hskPath ? "Susunan tingkat mengacu pada kerangka HSK yang dipilih. Daftar kata dan isi silabus resmi belum disalin; setiap tingkat yang kosong akan ditandai sampai sumbernya boleh digunakan." : "Setiap unit akan muncul setelah kata, contoh, bacaan, dan sumbernya selesai ditinjau."} />
+  return <Protected><div className="page-wrap"><PageBack to="/paths" /><PageTitle eyebrow="JALUR BELAJAR" title={pathName || "Susunan materi"} subtitle={hskPath ? "Kerangka resmi HSK tersedia dan dipakai untuk menyusun jalur. Materi pemula di sini ditulis khusus untuk aplikasi, bukan salinan daftar resmi." : "Kata, contoh, dan latihan berbahasa Indonesia untuk situasi sehari-hari."} />
     {units.length ? <div className="unit-list">{units.map((unit) => <Link className="unit-row" to={`/unit/${unit.id}`} key={unit.id}><span className="unit-number">{String(unit.ordinal + 1).padStart(2, "0")}</span><span className="unit-copy"><strong>{unit.title}</strong><small>{unit.description ?? `${unit.placement_count} materi`}</small></span><span className="unit-progress">{unit.placement_count} materi</span><ChevronRight /></Link>)}</div> : <div className="empty-card"><div className="hsk-level-strip">{Array.from({ length: pathId === "curriculum-hsk-2" ? 6 : 9 }, (_, i) => <span key={i}>Tingkat {i + 1}</span>)}</div><h3>Daftar pelajaran akan segera tersedia</h3><p>Kami tidak menampilkan jumlah kata HSK yang belum diverifikasi dari sumber resmi.</p></div>}
   </div></Protected>;
 }
@@ -168,7 +169,7 @@ function WordPage() {
   return <Protected><div className="page-wrap word-page"><PageBack to={unitId ? `/unit/${unitId}` : "/paths"} /><div className="word-hero"><span className="tag">KATA DALAM KONTEKS</span><h1>{entry.entry.simplifiedForm}</h1><p>{entry.readings[0]?.numberedPinyin ?? "Pelafalan sedang ditinjau"}</p><AudioButton assetId={entry.readings[0]?.audioId} prominent /></div>
     <section className="detail-card"><h2>Makna</h2>{entry.senses.length ? entry.senses.map((sense) => <p key={sense.id}>{sense.text}<span className="muted"> {sense.usageLabel}</span></p>) : <InlineNotice>Terjemahan bahasa Indonesia belum disetujui.</InlineNotice>}</section>
     <section className="detail-card"><h2>Karakter penyusun</h2><div className="character-strip">{entry.characters.map((char) => <Link key={char.id} to={`/write/${char.id}${writeQuery}`}><strong>{char.hanzi}</strong><small>{char.strokeCount} guratan</small></Link>)}</div></section>
-    <section className="detail-card"><h2>Contoh kalimat</h2>{entry.examples.length ? entry.examples.map((example) => <div className="example" key={example.id}><strong>{example.simplifiedText}</strong><small>{example.numberedPinyin}</small><p>{example.translation}</p></div>) : <p className="muted">Contoh pemakaian akan tampil setelah ditinjau.</p>}</section>
+    {entry.examples.length > 0 && <section className="detail-card"><h2>Contoh kalimat</h2>{entry.examples.map((example) => <div className="example" key={example.id}><strong>{example.simplifiedText}</strong><small>{example.numberedPinyin}</small><p>{example.translation}</p></div>)}</section>}
   </div></Protected>;
 }
 
@@ -187,9 +188,14 @@ function GuidedWritingPage() {
     : unitId ? `/unit/${unitId}` : "/paths";
   const { data: currentSession } = useLearnerSession();
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const writerRef = useRef<HanziWriter | null>(null);
   const [target, setTarget] = useState<{ hanzi: string; strokeCount: number; strokeDataStatus: string } | null>(null);
   const [writerState, setWriterState] = useState<"loading" | "ready" | "unavailable">("loading");
   const [result, setResult] = useState<string>("");
+  const [mode, setMode] = useState<"tutorial" | "practice">("tutorial");
+  const [strokeIndex, setStrokeIndex] = useState(-1);
+  const [playing, setPlaying] = useState(false);
+  const [paused, setPaused] = useState(false);
   useEffect(() => {
     let writer: HanziWriter | undefined;
     let cancelled = false;
@@ -208,27 +214,74 @@ function GuidedWritingPage() {
         padding: 20,
         showOutline: true,
         showCharacter: false,
-        strokeColor: "#20243a",
-        outlineColor: "#d9dce5",
-        drawingColor: "#ffb800",
+        strokeColor: "#171717",
+        outlineColor: "#d8dbe3",
+        drawingColor: "#171717",
+        highlightColor: "#171717",
+        highlightCompleteColor: "#171717",
+        drawingWidth: 12,
+        strokeAnimationSpeed: 0.85,
+        delayBetweenStrokes: 480,
         charDataLoader: (_char, onLoad) => { onLoad(data); return data; },
       });
       if (cancelled) { writer?.cancelQuiz(); host.replaceChildren(); return; }
+      writerRef.current = writer;
+      setStrokeIndex(-1); setMode("tutorial"); setPlaying(false); setPaused(false);
       setWriterState("ready");
-      void writer.quiz({ showHintAfterMisses: 1, markStrokeCorrectAfterMisses: false, acceptBackwardsStrokes: false,
-        onCorrectStroke: (stroke) => setResult(`Guratan ${stroke.strokeNum + 1} benar`),
-        onMistake: (stroke) => setResult(`Perhatikan arah dan urutan guratan ${stroke.strokeNum + 1}`),
-        onComplete: (summary) => {
-          setResult(summary.totalMistakes ? `Sesi selesai · ${summary.totalMistakes} koreksi arah atau bentuk` : "Semua guratan selesai dengan benar");
-          if (currentSession?.user.id) void saveAttempt({ contentType: "character", contentId: characterId, curriculumPlacementId: placementId ?? undefined, activityMode: "guided_writing", dimensions: { strokeOrder: summary.totalMistakes ? "needs_practice" : "correct" }, engineVersion: "hanzi-writer-local" }, currentSession.user.id);
-        },
-      });
+      setResult("Mulai dengan melihat seluruh urutan, lalu coba tulis sendiri.");
     }).catch(() => { if (!cancelled) setWriterState("unavailable"); });
-    return () => { cancelled = true; writer?.cancelQuiz(); };
+    return () => { cancelled = true; writer?.cancelQuiz(); if (writerRef.current === writer) writerRef.current = null; };
   }, [characterId, currentSession?.user.id, placementId]);
-  return <Protected><div className="practice-page"><PageBack to={returnTo} /><div className="practice-heading"><div><span className="tag">逐筆引導 · LATIHAN MENULIS</span><h1>{target?.hanzi ?? "写"}</h1><p>{target ? `${target.strokeCount} guratan · ikuti petunjuk satu筆一筆` : "Pilih karakter dari pelajaran yang tersedia."}</p></div><button className="button button-soft" onClick={() => window.location.reload()}><RotateCcw size={16} /> Ulangi</button></div>
-    <div className="writing-layout"><div className="writing-main"><div id="stroke-writer" className="writer-board" ref={containerRef}><div className="practice-grid" aria-hidden="true" /></div><div className={`practice-feedback ${result.includes("benar") ? "feedback-good" : ""}`} aria-live="polite">{writerState === "loading" ? "Memuat data guratan yang telah ditinjau…" : writerState === "unavailable" ? "Data guratan berlisensi dan terverifikasi belum tersedia untuk karakter ini." : result || "Mulai dengan mengikuti petunjuk guratan."}</div></div>
-      <aside className="writing-aside"><div className="aside-card"><span className="aside-step">LATIHAN</span><strong>Tulis berdasarkan urutan</strong><p>Mulai dari titik dan arah yang ditunjukkan. Jika keliru, petunjuk akan muncul kembali.</p></div><div className="aside-card aside-light"><span className="aside-step">YANG DINILAI</span><span className="check-line"><Check /> Urutan guratan</span><span className="check-line"><Check /> Arah guratan</span><span className="check-line"><Check /> Bentuk mendekati contoh</span></div><div className="aside-note"><ShieldCheck size={15} /> Jejak pena tidak disimpan di server.</div></aside>
+
+  const playTutorial = () => {
+    const writer = writerRef.current;
+    if (!writer) return;
+    writer.cancelQuiz();
+    setMode("tutorial"); setPlaying(true); setPaused(false); setResult("Perhatikan arah dan urutan setiap guratan.");
+    void writer.animateCharacter({ onComplete: ({ canceled }) => {
+      setPlaying(false); setPaused(false);
+      if (!canceled) { setStrokeIndex((target?.strokeCount ?? 1) - 1); setResult("Urutan lengkap selesai. Putar lagi atau coba menulis sendiri."); }
+    } });
+  };
+
+  const showStrokeThrough = async (requestedIndex: number) => {
+    const writer = writerRef.current;
+    if (!writer || !target || playing) return;
+    const nextIndex = Math.max(0, Math.min(target.strokeCount - 1, requestedIndex));
+    writer.cancelQuiz(); setMode("tutorial"); setPlaying(true); setPaused(false);
+    setResult("Lihat guratan satu per satu dari awal.");
+    await writer.hideCharacter({ duration: 0 });
+    for (let index = 0; index <= nextIndex; index += 1) await writer.animateStroke(index);
+    setStrokeIndex(nextIndex); setPlaying(false);
+    setResult("Guratan " + (nextIndex + 1) + " dari " + target.strokeCount + ". Ikuti arah hitam yang terisi perlahan.");
+  };
+
+  const startPractice = () => {
+    const writer = writerRef.current;
+    if (!writer) return;
+    writer.cancelQuiz(); setMode("practice"); setPlaying(false); setPaused(false);
+    setResult("Mulai menulis dari guratan pertama. Guratanmu terisi hitam saat digambar.");
+    void writer.hideCharacter({ duration: 0 }).then(() => writer.quiz({ showHintAfterMisses: 1, markStrokeCorrectAfterMisses: false, acceptBackwardsStrokes: false,
+      onCorrectStroke: (stroke) => setResult("Guratan " + (stroke.strokeNum + 1) + " benar"),
+      onMistake: (stroke) => setResult("Perhatikan arah dan urutan guratan " + (stroke.strokeNum + 1)),
+      onComplete: (summary) => {
+        setResult(summary.totalMistakes ? "Sesi selesai · " + summary.totalMistakes + " koreksi arah atau bentuk" : "Semua guratan selesai dengan benar");
+        if (currentSession?.user.id) void saveAttempt({ contentType: "character", contentId: characterId, curriculumPlacementId: placementId ?? undefined, activityMode: "guided_writing", dimensions: { strokeOrder: summary.totalMistakes ? "needs_practice" : "correct" }, engineVersion: "hanzi-writer-local" }, currentSession.user.id);
+      },
+    }));
+  };
+
+  const togglePlayback = () => {
+    const writer = writerRef.current;
+    if (!writer) return;
+    if (paused) { void writer.resumeAnimation(); setPaused(false); }
+    else { void writer.pauseAnimation(); setPaused(true); }
+  };
+  return <Protected><div className="practice-page"><PageBack to={returnTo} /><div className="practice-heading"><div><span className="tag">逐笔引导 · LATIHAN MENULIS</span><h1>{target?.hanzi ?? "写"}</h1><p>{target ? `${target.strokeCount} guratan · ikuti petunjuk 一笔一笔` : "Pilih karakter dari pelajaran yang tersedia."}</p></div><button className="button button-soft" disabled={writerState !== "ready" || playing} onClick={playTutorial}><RotateCcw size={16} /> Putar ulang</button></div>
+    <div className="writing-layout"><div className="writing-main"><div id="stroke-writer" className="writer-board" ref={containerRef}><div className="practice-grid" aria-hidden="true" /></div><div className="writer-mode-tabs" role="group" aria-label="Pilih cara belajar menulis"><button className={`button ${mode === "tutorial" ? "button-primary" : "button-soft"}`} disabled={writerState !== "ready" || playing} aria-pressed={mode === "tutorial"} onClick={playTutorial}><Play /> Putar seluruh urutan</button><button className={`button ${mode === "practice" ? "button-primary" : "button-soft"}`} disabled={writerState !== "ready" || playing} aria-pressed={mode === "practice"} onClick={startPractice}>Mulai menulis</button></div>
+      {mode === "tutorial" && <div className="stroke-stepper"><button className="icon-button" aria-label="Tampilkan guratan sebelumnya" disabled={writerState !== "ready" || playing || strokeIndex <= 0} onClick={() => void showStrokeThrough(strokeIndex - 1)}><ChevronLeft /></button><span>Langkah {target ? strokeIndex + 1 : 0} dari {target?.strokeCount ?? "—"}</span><button className="icon-button" aria-label="Tampilkan guratan berikutnya" disabled={writerState !== "ready" || playing || strokeIndex >= (target?.strokeCount ?? 0) - 1} onClick={() => void showStrokeThrough(strokeIndex + 1)}><ChevronRight /></button><button className="icon-button" aria-label={paused ? "Lanjutkan tutorial" : "Jeda tutorial"} disabled={!playing} onClick={togglePlayback}>{paused ? <Play /> : <Pause />}</button></div>}
+      <div className={`practice-feedback ${result.includes("benar") ? "feedback-good" : ""}`} aria-live="polite">{writerState === "loading" ? "Memuat data guratan yang telah ditinjau…" : writerState === "unavailable" ? "Data guratan berlisensi dan terverifikasi belum tersedia untuk karakter ini." : result || "Mulai dengan mengikuti petunjuk guratan."}</div></div>
+      <aside className="writing-aside"><div className="aside-card"><span className="aside-step">TUTORIAL LENGKAP</span><strong>Lihat, ulangi, lalu tulis</strong><p>Putar seluruh urutan dari awal. Gunakan panah untuk melihat hingga guratan tertentu, lalu mulai latihan arah dan bentuk.</p><button className="button button-soft" disabled={writerState !== "ready" || playing} onClick={playTutorial}><RotateCcw /> Putar ulang tutorial</button></div><div className="aside-card aside-light"><span className="aside-step">YANG DINILAI</span><span className="check-line"><Check /> Urutan guratan</span><span className="check-line"><Check /> Arah guratan</span><span className="check-line"><Check /> Bentuk mendekati contoh</span></div><div className="aside-note"><ShieldCheck size={15} /> Jejak pena tidak disimpan di server.</div></aside>
     </div></div></Protected>;
 }
 
@@ -325,10 +378,10 @@ function FreehandPage() {
       setNotice(error instanceof Error ? error.message : "目前无法保存确认结果。笔迹没有上传。");
     }
   };
-  return <Protected><div className="practice-page"><PageBack to="/" /><PageTitle eyebrow="自由書寫" title="寫寫看，不限筆順" subtitle="自由手寫用來觀察字形；筆順練習請使用逐筆引導。" />
-    <div className="freehand-layout"><div className="freehand-canvas-wrap"><canvas id="freehand-canvas" ref={setCanvas} width={960} height={960} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} className="freehand-canvas" aria-label="自由手寫畫布" /><div className="freehand-hint">{drawing ? "正在書寫…" : "用觸控筆或手指在方格中寫字"}</div></div>
-      <aside className="freehand-side"><div className="aside-card"><span className="aside-step">本機辨識 · {recognizerState === "ready" ? "已就緒" : recognizerState === "loading" ? "載入中" : "無法使用"}</span><strong>在你的裝置上找相似字</strong><p>引擎於瀏覽器本機執行，提供候選字並由你確認；不把筆跡傳送或保存到伺服器。相似排序不代表準確率。</p></div><div className="freehand-count"><small>本次落筆</small><strong>{strokeCount}</strong><span>筆</span></div><div className="freehand-actions"><button className="button button-soft" onClick={undo} disabled={!strokeCount}><RotateCcw size={16} /> 撤銷一筆</button><button className="button button-soft" onClick={clear} disabled={!strokeCount}><X size={16} /> 清除</button><button className="button button-primary" onClick={recognize} disabled={recognizing || recognizerState !== "ready" || !strokeCount}><Search size={16} /> {recognizing ? "辨認中…" : "辨認手寫"}</button></div>
-        {candidates.length > 0 && <div className="candidate-panel"><strong>你想寫的是哪個字？</strong><p>選一個確認；結果只代表本次辨認。</p><div className="candidate-grid">{candidates.map((candidate, index) => <button className="candidate-chip" key={`${candidate.hanzi}-${index}`} onClick={() => void confirmCandidate(candidate, index)} aria-label={`確認為${candidate.hanzi}`}><span>{candidate.hanzi}</span><small>{index + 1}</small></button>)}</div></div>}
+  return <Protected><div className="practice-page"><PageBack to="/" /><PageTitle eyebrow="自由书写" title="写写看，不限笔顺" subtitle="自由手写用来观察字形；笔顺练习请使用逐笔引导。" />
+    <div className="freehand-layout"><div className="freehand-canvas-wrap"><canvas id="freehand-canvas" ref={setCanvas} width={960} height={960} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} className="freehand-canvas" aria-label="自由手写画布" /><div className="freehand-hint">{drawing ? "正在书写…" : "用触控笔或手指在方格中写字"}</div></div>
+      <aside className="freehand-side"><div className="aside-card"><span className="aside-step">本机辨识 · {recognizerState === "ready" ? "已就绪" : recognizerState === "loading" ? "载入中" : "无法使用"}</span><strong>在你的设备上找相似字</strong><p>引擎在浏览器本机运行，提供候选字并由你确认；不会把笔迹传送或保存到服务器。相似排序不代表准确率。</p></div><div className="freehand-count"><small>本次落笔</small><strong>{strokeCount}</strong><span>笔</span></div><div className="freehand-actions"><button className="button button-soft" onClick={undo} disabled={!strokeCount}><RotateCcw size={16} /> 撤销一笔</button><button className="button button-soft" onClick={clear} disabled={!strokeCount}><X size={16} /> 清除</button><button className="button button-primary" onClick={recognize} disabled={recognizing || recognizerState !== "ready" || !strokeCount}><Search size={16} /> {recognizing ? "辨认中…" : "辨认手写"}</button></div>
+        {candidates.length > 0 && <div className="candidate-panel"><strong>你想写的是哪个字？</strong><p>选一个确认；结果只代表本次辨认。</p><div className="candidate-grid">{candidates.map((candidate, index) => <button className="candidate-chip" key={`${candidate.hanzi}-${index}`} onClick={() => void confirmCandidate(candidate, index)} aria-label={`确认为${candidate.hanzi}`}><span>{candidate.hanzi}</span><small>{index + 1}</small></button>)}</div></div>}
         {notice && <InlineNotice>{notice}</InlineNotice>}</aside>
     </div>
   </div></Protected>;
@@ -340,7 +393,7 @@ function ReviewPage() {
   return <Protected><div className="page-wrap"><PageTitle eyebrow="ULANGI" title="Pengulangan hari ini" subtitle="Materi akan dijadwalkan ulang berdasarkan hasil latihanmu." />{items.length ? <div className="unit-list">{items.map((item) => <div key={`${item.contentType}-${item.contentId}`} className="unit-row"><span className="hanzi-thumb">{item.word ?? item.character}</span><span className="unit-copy"><strong>{item.word ?? item.character}</strong><small>{item.contentType === "character" ? "Karakter" : "Kosakata"}</small></span><Link to={item.contentType === "character" ? `/write/${item.contentId}` : `/word/${item.contentId}`} className="button button-primary">Mulai</Link></div>)}</div> : <div className="empty-card"><div className="empty-icon"><RotateCcw /></div><h3>Belum ada materi untuk diulang</h3><p>Setelah belajar materi yang sudah terbit, pengulangan akan muncul sesuai jadwalmu.</p><Link to="/paths" className="button button-primary">Pilih pelajaran</Link></div>}</div></Protected>;
 }
 
-function SummaryPage() { return <Protected><div className="summary-page"><div className="summary-star"><Sparkles /></div><span className="tag">SESI SELESAI</span><h1>Bagus sekali!</h1><p>Latihanmu telah disimpan pada perangkat ini dan akan tersinkron saat kamu online.</p><Link className="button button-primary" to="/">Kembali ke beranda <ArrowRight /></Link></div></Protected>; }
+function SummaryPage() { return <Protected><div className="summary-page"><div className="summary-star"><Sparkles /></div><span className="tag">SESI SELESAI</span><h1>Bagus sekali!</h1><p>Latihanmu tersimpan di akun. Jika sedang offline, aplikasi akan menyinkronkannya saat koneksi kembali.</p><Link className="button button-primary" to="/">Kembali ke beranda <ArrowRight /></Link></div></Protected>; }
 
 function ProfilePage() {
   const { data } = useLearnerSession();
@@ -366,7 +419,7 @@ function ProfilePage() {
   const signOut = async () => { await authClient.signOut(); window.location.assign("/login"); };
   return <Protected><div className="page-wrap profile-page"><PageTitle eyebrow="PROFIL" title="Akun belajar" subtitle="Kemajuan akun tersinkron ke server saat perangkat online." />
     <div className="profile-card"><div className="profile-avatar">{data?.user.name.slice(0, 1).toUpperCase()}</div><div><strong>{profile?.display_name || data?.user.name}</strong><small>{profile?.email || data?.user.email}</small></div><span className="tag">PEMBELAJAR</span></div>
-    <div className="detail-card profile-settings"><h2><Settings /> Pengaturan</h2><label>Target belajar harian<select value={profile?.daily_goal_minutes ?? 10} onChange={(event) => { const value = Number(event.target.value); setProfile((current) => current ? { ...current, daily_goal_minutes: value } : current); void api("/profile", { method: "PATCH", body: JSON.stringify({ dailyGoalMinutes: value }) }); }}><option value={5}>5 menit</option><option value={10}>10 menit</option><option value={15}>15 menit</option><option value={20}>20 menit</option></select></label><Link className="button button-soft" to="/credits">Sumber materi & teknologi <ChevronRight /></Link>{profile?.roles?.some((role) => role === "owner_admin" || role === "content_reviewer") && <Link className="button button-soft" to="/admin">Buka ruang pengelola <ArrowRight /></Link>}<button className="button button-soft" onClick={() => void signOut()}><LogOut /> Keluar</button></div>
+    <div className="detail-card profile-settings"><h2><Settings /> Pengaturan</h2><label>Target belajar harian<select value={profile?.daily_goal_minutes ?? 10} onChange={(event) => { const value = Number(event.target.value); setProfile((current) => current ? { ...current, daily_goal_minutes: value } : current); void api("/profile", { method: "PATCH", body: JSON.stringify({ dailyGoalMinutes: value }) }); }}><option value={5}>5 menit</option><option value={10}>10 menit</option><option value={15}>15 menit</option><option value={20}>20 menit</option></select></label><div className="profile-quick-actions"><Link className="button button-soft" to="/credits"><BookOpen /><span>Sumber materi & teknologi</span><ChevronRight /></Link><button className="button button-soft" onClick={() => void signOut()}><LogOut /><span>Keluar</span></button></div>{profile?.roles?.some((role) => role === "owner_admin" || role === "content_reviewer") && <Link className="button button-soft admin-entry-button" to="/admin"><ShieldCheck /> Ruang pengelola <ArrowRight /></Link>}</div>
     <div className="detail-card"><h2><ShieldCheck /> Pemulihan akun tanpa email berbayar</h2><p className="muted">Simpan kode pemulihan di tempat aman. Setiap kode hanya dapat digunakan sekali.</p><button className="button button-soft" onClick={() => void makeCodes()}>Buat kode pemulihan</button>{recoveryCodes.length > 0 && <div className="recovery-codes">{recoveryCodes.map((code) => <code key={code}>{code}</code>)}<button className="button button-primary" onClick={() => void navigator.clipboard.writeText(recoveryCodes.join("\n"))}>Salin kode</button><p>Pastikan tersimpan. Kode tidak dapat ditampilkan lagi.</p></div>}</div>
     <div className="detail-card"><h2>Privasi & data</h2><div className="privacy-actions"><button className="button button-soft" onClick={() => void requestPrivacy("export")}>Unduh salinan data</button><button className="button button-danger" onClick={() => { if (window.confirm("Ajukan permintaan penghapusan akun? Admin perlu menyelesaikan penghapusan ini.")) void requestPrivacy("delete_account"); }}>Ajukan penghapusan akun</button></div>{privacyRequests.filter((request) => request.type === "delete_account").map((request) => <p className="privacy-request-status" key={request.id}>Permintaan {new Date(request.requestedAt).toLocaleDateString("id-ID")} · {request.status === "requested" ? "menunggu ditangani" : request.status === "rejected" ? "ditolak" : request.status}</p>)}{notice && <InlineNotice>{notice}</InlineNotice>}</div>
   </div></Protected>;
@@ -375,8 +428,8 @@ function ProfilePage() {
 function CreditsPage() {
   return <div className="page-wrap"><PageBack to="/profile" /><PageTitle eyebrow="KREDIT & LISENSI" title="Sumber materi dan teknologi" subtitle="Materi terbuka mempertahankan atribusi dan lisensinya sendiri; lisensi aplikasi tidak menggantikannya." />
     <section className="detail-card"><h2>Data urutan guratan</h2><p>Karakter awal memakai Hanzi Writer Data 2.0.1 dari Make Me a Hanzi, yang menyatakan data guratan berasal dari glyph Arphic. Data ini berlisensi Arphic Public License dan bukan klaim bahwa setiap urutan telah disahkan Kementerian Pendidikan Tiongkok.</p><p><a href="https://github.com/chanind/hanzi-writer-data" target="_blank" rel="noreferrer">Repositori Hanzi Writer Data</a> · <a href="https://github.com/chanind/hanzi-writer-data/blob/master/ARPHICPL.TXT" target="_blank" rel="noreferrer">Teks Arphic Public License</a></p></section>
-    <section className="detail-card"><h2>Rekaman Mandarin</h2><p>“你好” — Sjors Provoost, sumber Wikimedia Commons, CC BY-SA 3.0. <a href="https://commons.wikimedia.org/wiki/File:Zh_n%C7%90_h%C7%8Eo.ogg" target="_blank" rel="noreferrer">File sumber</a>.</p><p>“你 / nǐ” — Wei Gao dan Vion Nicolas, sumber Wikimedia Commons, CC BY 2.0 fr. <a href="https://commons.wikimedia.org/wiki/File:Zh-n%C7%90.ogg" target="_blank" rel="noreferrer">File sumber</a>.</p><p>Wiktionary mencantumkan file “你好” untuk pembacaan Mandarin <i>nǐ hǎo</i>: <a href="https://en.wiktionary.org/wiki/n%C7%90_h%C7%8Eo" target="_blank" rel="noreferrer">entri pelafalan</a>. Ini adalah rekaman komunitas dengan lisensi terbuka, bukan rekaman pemerintah atau sertifikasi fonetik resmi. Ogg sumber ditranskode ke MP3 demi kompatibilitas browser; audio ucapannya tidak diedit.</p></section>
-    <section className="detail-card"><h2>Struktur HSK</h2><p>Jalur HSK 2.0 enam tingkat dan HSK Baru tiga tahap/sembilan tingkat memakai metadata struktur dari <a href="https://www.chinesetest.cn/hsk" target="_blank" rel="noreferrer">Chinese Tests Service Website</a>. Daftar kosakata, tata bahasa, dan isi silabus resmi tidak disalin ke aplikasi karena izin redistribusi belum dipastikan.</p></section>
+    <section className="detail-card"><h2>Rekaman Mandarin</h2><p>“你好” — Sjors Provoost, sumber Wikimedia Commons, CC BY-SA 3.0. <a href="https://commons.wikimedia.org/wiki/File:Zh_n%C7%90_h%C7%8Eo.ogg" target="_blank" rel="noreferrer">File sumber</a>.</p><p>“你 / nǐ” dan “我 / wǒ” — Wei Gao dan Vion Nicolas, sumber Wikimedia Commons, CC BY 2.0 fr. <a href="https://commons.wikimedia.org/wiki/File:Zh-n%C7%90.ogg" target="_blank" rel="noreferrer">你 / file sumber</a> · <a href="https://commons.wikimedia.org/wiki/File:Zh-w%C7%92.ogg" target="_blank" rel="noreferrer">我 / file sumber</a>.</p><p>Wiktionary mencantumkan file “你好” untuk pembacaan Mandarin <i>nǐ hǎo</i>: <a href="https://en.wiktionary.org/wiki/n%C7%90_h%C7%8Eo" target="_blank" rel="noreferrer">entri pelafalan</a>. Ini adalah rekaman komunitas dengan lisensi terbuka, bukan rekaman pemerintah atau sertifikasi fonetik resmi. Ogg sumber ditranskode ke MP3 demi kompatibilitas browser; audio ucapannya tidak diedit.</p></section>
+    <section className="detail-card"><h2>Materi & struktur HSK</h2><p>Materi resmi memang tersedia: situs ujian HSK memuat kerangka, silabus, contoh soal, dan bahan ujian. Yang belum dipastikan adalah izin untuk menyalin serta menerbitkan ulang daftar dan teks lengkap itu di aplikasi terbuka ini. Karena itu, latihan HSK yang tersedia sekarang ditulis khusus untuk aplikasi dan tidak diklaim sebagai daftar resmi HSK.</p><p><a href="https://www.chinesetest.cn/hsk" target="_blank" rel="noreferrer">Kerangka HSK resmi</a> · <a href="https://admin.chinesetest.cn/godownload.do" target="_blank" rel="noreferrer">Pusat unduhan resmi HSK</a> · <a href="https://www.chinesetest.cn/legal-notice" target="_blank" rel="noreferrer">Ketentuan situs CTI</a></p><p>Struktur enam tingkat HSK 2.0 dan tiga tahap/sembilan tingkat HSK Baru dipakai sebagai navigasi. Kosakata, contoh kalimat, serta terjemahan baru tetap dicatat sebagai konten asli berbahasa Indonesia. Tingkat pemula sekarang berisi 20 materi buatan aplikasi pada kedua jalur.</p></section>
     <section className="detail-card"><h2>Teknologi</h2><ul><li>React, React Router, TypeScript, Vite, Hono, Better Auth, Zod, IndexedDB, dan Cloudflare Workers/D1.</li><li>Hanzi Writer untuk animasi dan latihan guratan; library-nya MIT, data karakternya memakai lisensi terpisah.</li><li>Hanzi Lookup WASM untuk saran pengenalan tulisan tangan lokal; kodenya LGPL-3.0 dan data bentuk tertanam berlisensi Arphic Public License.</li><li>OpenCC JS untuk normalisasi kandidat tradisional menjadi sederhana; source, data, dan lisensinya dicatat di <code>THIRD_PARTY_NOTICES.md</code> pada repositori.</li></ul></section>
     <section className="detail-card"><h2>Catatan penggunaan</h2><p>Audio yang belum memiliki rekaman tepat untuk kata dan konteksnya akan tetap ditampilkan sebagai belum tersedia. Kami tidak menggabungkan bunyi per suku kata atau menggantinya dengan suara sintesis yang belum diverifikasi.</p><p>Setiap aset menyimpan checksum dan bukti lisensi. Pengelola tetap dapat membuka sumbernya untuk melakukan pemeriksaan ulang atau menolak aset.</p></section>
   </div>;
@@ -499,10 +552,10 @@ function AdminAudit() {
 function AudioButton({ assetId, prominent = false }: { assetId?: string | null; prominent?: boolean }) {
   const [error, setError] = useState("");
   const play = async () => {
-    const src = audioUrl(assetId); if (!src) { setError("Audio kata ini belum tersedia."); return; }
+    const src = audioUrl(assetId); if (!src) return;
     try { const audio = new Audio(src); await audio.play(); setError(""); } catch { setError("Rekaman berlisensi belum dapat diputar."); }
   };
-  return <span className="audio-control"><button className={`audio-button ${prominent ? "audio-button-prominent" : ""} ${!assetId ? "audio-unavailable" : ""}`} onClick={() => void play()} aria-label={assetId ? "Putar audio Mandarin" : "Audio belum tersedia"}><Volume2 /></button>{prominent && <small>{error || (assetId ? "Dengarkan" : "Audio standar belum tersedia")}</small>}</span>;
+  return <span className="audio-control"><button className={`audio-button ${prominent ? "audio-button-prominent" : ""} ${!assetId ? "audio-unavailable" : ""}`} disabled={!assetId} onClick={() => void play()} aria-label={assetId ? "Putar rekaman Mandarin asli" : "Rekaman belum tersedia"} title={assetId ? "Putar rekaman Mandarin" : "Rekaman Mandarin belum tersedia; pinyin tetap ditampilkan"}><Volume2 /></button><small>{error || (assetId ? (prominent ? "Dengarkan" : "Putar") : "Belum ada audio")}</small></span>;
 }
 
 function AdminPageHead({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) { return <div className="admin-page-head"><span className="tag">{eyebrow}</span><h1>{title}</h1><p>{subtitle}</p></div>; }

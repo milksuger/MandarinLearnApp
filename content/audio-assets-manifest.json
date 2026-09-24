@@ -33,6 +33,22 @@
       "productSha256": "2ffc2472805ddcf022967b7ceff36c3989afe9a5a1d1e0745cfcc38fa4a2ef25",
       "durationMs": 1228,
       "transformation": "FFmpeg 2013/libmp3lame CBR 128 kbit/s mono 22050 Hz; lossy compatibility transcode, no speech editing"
+    },
+    {
+      "id": "audio-word-wo",
+      "text": "我",
+      "pinyin": "wǒ",
+      "sourceFile": "third_party/audio_sources/commons-zh-wo-original.ogg",
+      "sourceSha256": "c912a0796315cf2d4c7c8cab74b13c8979b9eac372d3d8047638550db949cd15",
+      "sourcePage": "https://commons.wikimedia.org/wiki/File:Zh-w%C7%92.ogg",
+      "creator": "Wei Gao and Vion Nicolas",
+      "license": "CC BY 2.0 fr",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0/fr/deed.en",
+      "speakerIdentity": "Commons description identifies a Beijing speaker",
+      "productFile": "public/media/audio/commons-zh-wo.mp3",
+      "productSha256": "b2326ef9b2fc9228b372c8aef0e6940d4faeaae406d3da8095dd5d3486c69a78",
+      "durationMs": 993,
+      "transformation": "Wikimedia Commons server-side MP3 compatibility transcode; speech not edited"
     }
   ]
 }

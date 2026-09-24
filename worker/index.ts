@@ -404,14 +404,40 @@ app.post("/api/v1/attempts", async (c) => {
 app.get("/api/v1/progress", async (c) => {
   const principal = await requirePrincipal(c);
   if (!principal) return jsonError("unauthenticated", "Silakan masuk terlebih dahulu.", 401);
-  const [summary, due, recent, freehand] = await Promise.all([
+  const [summary, due, recent, freehand, profile, activity] = await Promise.all([
     c.env.DB.prepare(`SELECT COUNT(*) AS learned_items, COALESCE(SUM(attempts_count),0) AS attempts,
       COALESCE(SUM(correct_count),0) AS correct FROM learner_progress WHERE user_id = ?`).bind(principal.id).first(),
     c.env.DB.prepare("SELECT COUNT(*) AS due_count FROM review_schedules WHERE user_id = ? AND due_at <= ?").bind(principal.id, new Date().toISOString()).first(),
     c.env.DB.prepare("SELECT accepted_at AS occurredAt, content_type AS contentType, activity_mode AS activityMode FROM learning_attempts WHERE user_id = ? ORDER BY accepted_at DESC LIMIT 20").bind(principal.id).all(),
     c.env.DB.prepare("SELECT COUNT(*) AS recognitions, COUNT(DISTINCT hanzi) AS characters FROM freehand_recognition_events WHERE user_id = ?").bind(principal.id).first(),
+    c.env.DB.prepare("SELECT timezone FROM learner_profiles WHERE user_id = ?").bind(principal.id).first<{ timezone: string }>(),
+    c.env.DB.prepare("SELECT accepted_at FROM learning_attempts WHERE user_id = ? ORDER BY accepted_at DESC LIMIT 2000").bind(principal.id).all<{ accepted_at: string }>(),
   ]);
-  return c.json({ summary, due: due?.due_count ?? 0, recent: recent.results, confirmedFreehand: freehand });
+  const timezone = profile?.timezone || "Asia/Jakarta";
+  let dateFormatter: Intl.DateTimeFormat;
+  try {
+    dateFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" });
+  } catch {
+    dateFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit" });
+  }
+  const dayKeys = [...new Set((activity.results ?? []).map(({ accepted_at }) => {
+    const parts = Object.fromEntries(dateFormatter.formatToParts(new Date(accepted_at)).map(({ type, value }) => [type, value]));
+    return `${parts.year}-${parts.month}-${parts.day}`;
+  }))].sort().reverse();
+  const utcDay = (key: string) => Date.parse(`${key}T00:00:00.000Z`);
+  const today = dateFormatter.formatToParts(new Date()).reduce<Record<string, string>>((parts, item) => (parts[item.type] = item.value, parts), {});
+  const todayKey = `${today.year}-${today.month}-${today.day}`;
+  let streakDays = 0;
+  if (dayKeys.length && (dayKeys[0] === todayKey || utcDay(todayKey) - utcDay(dayKeys[0]) === 86400000)) {
+    let expected = utcDay(dayKeys[0]);
+    for (const key of dayKeys) {
+      const current = utcDay(key);
+      if (expected - current !== 86400000 && current !== expected) break;
+      streakDays += 1;
+      expected = current - 86400000;
+    }
+  }
+  return c.json({ summary: { ...summary, streak_days: streakDays }, due: due?.due_count ?? 0, recent: recent.results, confirmedFreehand: freehand });
 });
 
 app.get("/api/v1/reviews", async (c) => {
