@@ -14,7 +14,7 @@ You are a senior product designer designing a polished, secure, responsive admin
 
 - The learner product is free: no subscription, lesson quota, paid speech API, paid handwriting-recognition API, or payment screen.
 - The first release uses a server-backed account and database, with progress synchronized across devices. Cloudflare is the first hosting target, but the design must not depend on Cloudflare-specific UI or terminology.
-- Learners study Simplified Chinese through two connected paths: everyday vocabulary and a versioned HSK 3.0 curriculum with three stages and nine levels.
+- Learners study Simplified Chinese through an everyday vocabulary path and separate, versioned HSK 2.0 (six levels) and HSK 3.0 (three stages, nine levels) paths.
 - Character practice has separate guided stroke-order feedback and freehand character recognition. Character identity, stroke order, direction, and shape are separate results. Uncertain recognition must remain uncertain; it must never be presented as a definite pass or failure.
 - Speech assets must be linked to a reviewed reading and context. A generated or device voice is not automatically an approved pronunciation. Show unavailable audio as unavailable rather than implying a verified voice exists.
 - This portal exists to monitor the product, inspect an individual learner’s progress, maintain content provenance and quality, and protect learner data. It is not a billing console or an advertising dashboard.
@@ -62,7 +62,7 @@ Create an at-a-glance dashboard with a date-range filter and a visible mock-data
 
 - Active learners and newly active learners.
 - Completed study sessions and review activity.
-- Daily-path and HSK 3.0 progress by stage/level.
+- Daily-path and HSK progress by standard, path, and unit; show HSK 3.0 stage/level and HSK 2.0 level distinctly.
 - Account synchronization success/failure and pending-sync trend.
 - Approved pronunciation playback success, unavailable-asset rate, and approved-asset fallback count.
 - Guided-writing completion, freehand-recognition abstention/uncertainty, and retry trend.
@@ -73,7 +73,7 @@ Charts must use clear labels and meaningful time ranges. Do not invent an accura
 
 ### Screen 3 — Learner directory
 
-Design a searchable, filterable learner list. Filters should include account state, last-active period, selected path (everyday / HSK 3.0 / both), HSK stage/level, sync status, and progress status. Include sort controls and pagination or a clear load-more pattern.
+Design a searchable, filterable learner list. Filters should include account state, last-active period, selected path (everyday / HSK 2.0 / HSK 3.0 / multiple), HSK standard and level, sync status, and progress status. Include sort controls and pagination or a clear load-more pattern.
 
 Show privacy-minimized rows/cards with:
 
@@ -103,7 +103,7 @@ Organize the profile into clear sections or tabs:
 **B. Curriculum progress**
 
 - Everyday-life path by topic/unit.
-- HSK 3.0 version, stage, level 1–9, completed/in-progress/not-started units, and prerequisite links.
+- HSK standard/version, stage/level, completed/in-progress/not-started units, and prerequisite links. Never combine HSK 2.0 and HSK 3.0 progress.
 - Show the same reusable word/character in multiple curriculum placements without duplicating its progress history.
 - Include a path/level filter and clear completion counts.
 
@@ -141,7 +141,7 @@ For each item, show:
 
 - Stable content ID, simplified form, segmented character references, tone-marked Pinyin, Indonesian senses, part of speech/usage labels, and contextual example.
 - Reading-to-context links for polyphonic characters.
-- Everyday-topic placements and HSK 3.0 version/stage/level placements.
+- Everyday-topic placements and separate HSK 2.0/HSK 3.0 versioned placements.
 - Source name, source version/date, original source form, license, attribution, checksum/version, editorial changes, and review status.
 - Clear separation between sourced facts and original editorial examples.
 - Warnings for missing source/license, an ambiguous reading without context, an unreviewed translation, a missing character/stroke asset, or an unapproved audio asset.

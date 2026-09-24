@@ -21,7 +21,7 @@ New public registrations receive learner permissions only. Admin authorization i
 ## 3. Main learner journeys
 
 1. Create/sign into an account, learn that progress is account-backed, and set level, chosen path(s), and daily goal.
-2. Continue from Home into a daily-life unit or the versioned HSK 3.0 curriculum (three stages, levels 1–9).
+2. Continue from Home into a daily-life unit, HSK 2.0 (six levels), or the versioned HSK 3.0 curriculum (three stages, levels 1–9). Keep the two standards separate.
 3. Study a contextual word: see its Simplified form, tone-marked Pinyin, Indonesian sense(s), component characters, examples, and an exact-context audio state.
 4. Enter guided character practice. Replay/slow the stroke animation, trace/write with a stylus or finger, undo/clear/hint, and receive separate order/direction/shape feedback.
 5. Enter freehand mode only after the guide is hidden. Run local recognition; report candidate/uncertain/abstained outcomes separately from stroke-order judgments.
@@ -32,7 +32,7 @@ New public registrations receive learner permissions only. Admin authorization i
 
 1. Sign in with an administrator role and review aggregate learner, database, content, audio, synchronization, and recognition-health indicators.
 2. Search the pseudonymous learner directory, view a learner profile, and record every individual profile access in an append-only audit event.
-3. Inspect curriculum membership/progress, separate reading/listening/guided-writing/freehand dimensions, due reviews, and recent attempt summaries.
+3. Inspect curriculum membership/progress by path and unit, separate reading/listening/guided-writing/freehand dimensions, due reviews, and recent attempt summaries.
 4. Review content/audio provenance and candidates. A candidate may be played in the review console; only an explicitly approved asset for the same contextual reading can be served to learners.
 5. Inspect recognition outcome distributions and system incidents without routine access to raw handwriting or audio captured from learners.
 
@@ -54,7 +54,8 @@ New public registrations receive learner permissions only. Admin authorization i
 - A character can have multiple readings. Each reading links to a context word/phrase and exact audio asset; no context-free guess is played.
 - Store original source form, source/version/date, license, attribution, checksum, editorial changes, locale, review state, and replacement history for every imported content/asset item.
 - Seed only original/editorially reviewed examples and minimal demonstration words until the redistribution terms for a full HSK or dictionary data set are confirmed.
-- HSK curriculum records always carry an explicit standard version and levels 1–9. Do not silently merge older HSK vocabulary.
+- HSK curriculum records always carry an explicit standard/version. HSK 2.0 has six levels; HSK 3.0 has three stages and levels 1–9. Do not silently merge content between them.
+- Each recorded attempt stores a derived outcome (`passed`, `needs_practice`, `uncertain`, or `not_assessed`) in addition to its measured dimensions. A session passes only when every dimension measured in that session passes; empty dimensions are not assessed.
 
 ### 5.3 Pronunciation
 
@@ -109,7 +110,7 @@ New public registrations receive learner permissions only. Admin authorization i
 - Attempt synchronization is idempotent and visibly reports offline/pending/synced states.
 - No sound without exact reading context and verified reuse provenance or an individual pronunciation review can reach learner playback; source verification is never labeled as official pronunciation certification.
 - Guided stroke validation and freehand identity recognition are separate interfaces and stored results.
-- HSK has versioned levels 1–9, and everyday-topic placements coexist on the same content IDs.
+- HSK 2.0 has six versioned levels and HSK 3.0 has three stages/nine levels; everyday-topic placements coexist on reusable content IDs.
 - Admin profile reads are role-checked and audited; routine access does not reveal raw attempts.
 - Cloudflare D1 migrations are repeatable and content/application layers do not depend on D1-specific IDs or query syntax.
 - Every dependency/data/audio asset has a recorded license/provenance decision before public release.

@@ -41,11 +41,14 @@ Work follows this order so domain and privacy decisions precede UI duplication. 
 - [x] Import a source-verified initial word/character set and daily-life lesson seed without unlicensed bulk content.
 - [x] Bundle licensed, exact-context audio with source attestation, pending pronunciation review, and admin review/takedown controls.
 - [x] Document migrations, seed/import workflow, free-tier deployment, backup/export, security configuration, GitHub license/credits, and rollback.
-- [ ] Perform the target-browser/device and security acceptance pass before any public deployment.
+- [x] Publish separate HSK 2.0 and HSK 3.0 navigation skeletons while keeping unlicensed official syllabus and word-list content out of the release.
+- [x] Carry the originating course placement through writing attempts; expose audited learner progress by path/unit and store a precise attempt outcome across measured dimensions.
+- [ ] Perform the target-browser/device and security acceptance pass before opening the preview to a wider learner community. The current workers.dev deployment is a limited preview.
 
 ## Open decisions that remain gates
 
-- [ ] Which HSK curriculum source may be redistributed, and under what exact terms?
+- [ ] Which HSK curriculum source may be redistributed, and under what exact terms? Current HSK paths are structural navigation only.
+- [ ] Build and review a repeatable import workflow for the licensed CC-CIDICT daily-life dataset, including its ShareAlike attribution obligations and Indonesian gloss quality.
 - [ ] Which additional native-speaker audio assets can be licensed for the next content release?
 - [ ] Which local freehand recognizer/data combination passes iPad Safari and third-party stylus checks while preserving the intended MIT application license?
 - [ ] Exact content retention and audit retention periods before public community launch.

@@ -42,7 +42,7 @@ Better Auth supports a direct D1 binding in its current release line. Password r
 ### Learning graph
 
 - `vocabulary_entries`, `characters`, `readings`, `glosses`, `vocabulary_characters`, and `examples` use stable opaque IDs.
-- `curricula`, `curriculum_units`, and `curriculum_placements` model daily-life and versioned HSK 3.0 without duplicating the underlying content.
+- `curricula`, `curriculum_units`, and `curriculum_placements` model daily-life, HSK 2.0, and HSK 3.0 without duplicating the underlying content. Every attempt may retain its placement context; its derived outcome is separate from the measured dimensions.
 - `asset_sources`, `audio_assets`, and `stroke_data_assets` store provenance, license, checksum/version, review state, and replacement links.
 - `learning_attempts` store derived assessment dimensions, client idempotency ID, curriculum placement context, sync timestamps, and engine/data versions; no raw stroke/media by default.
 - `learner_progress` and `review_schedules` are projections, not the source event log.

@@ -58,7 +58,9 @@ Prototype and implementation acceptance must include finger and third-party styl
 
 ## HSK and course content
 
-The [official Chinese Test Service HSK page](https://www.chinesetest.cn/hsk) describes the New HSK framework as three stages and nine levels and links to its examination syllabus. The course model should represent HSK 3.0 levels 1–9 and retain the standard version in every curriculum item. Keep the everyday-vocabulary path independent; both paths can refer to the same reusable content.
+The [official Chinese Test Service HSK page](https://www.chinesetest.cn/hsk) describes the New HSK as an expansion from the existing six-level system to three stages and nine levels, with separate levels 1–6 and 7–9 navigation. The app therefore keeps **HSK 2.0 (six levels)** and **HSK 3.0 (three stages/nine levels)** as separate versioned paths. The current release publishes only those structural slots; it does not copy the official syllabus, word list, grammar, or examples because their bulk redistribution terms have not been confirmed. Keep the everyday-vocabulary path independent; both paths can refer to the same reusable content.
+
+The [CC-CIDICT download page](https://cidict.org/download/) offers a UTF-8 U8 file and SQL export; its current page lists 125,318 entries in version 1.26, released 2026-08-26. Its [license terms](https://cidict.org/license-terms-of-use/) grant redistribution/adaptation under CC BY-SA 4.0 and require attribution to CC-CEDICT contributors, Harmony Mandarin, and CC-CIDICT; derivatives must retain CC BY-SA 4.0. The terms also disclaim data accuracy/fitness warranties, so imports should preserve exact source version and individual gloss provenance, and should not mislabel community dictionary entries as official HSK content. This version is a potential source for daily-life definitions, not currently bundled in full.
 
 Create original explanations, examples, and exercises. Before redistributing official or third-party syllabus-derived lists, confirm their reuse terms. Preserve attribution and distinguish officially sourced fields from editorial additions.
 
@@ -105,7 +107,7 @@ Use Cloudflare Pages for the web shell, Workers for versioned API endpoints, D1 
 
 - Settled: repository name `MandarinLearnApp`; application-code license MIT; no paid service budget; individual learner progress is visible to authorized admins and profile views are audited.
 - Confirm the GitHub repository owner/account and authenticated publishing route before the first public push. Keep private Git identity information out of published commits.
-- Confirm HSK 3.0 list redistribution terms and content editorial review. Do not assume the official test page grants bulk redistribution rights.
+- Confirm HSK 2.0/3.0 list redistribution terms before importing official exam lists. Do not assume the official test page grants bulk redistribution rights. CC-CIDICT is a separately licensed candidate for daily-life Chinese–Indonesian definitions, with ShareAlike attribution obligations.
 - Choose account authentication and decide whether registration is open from day one.
 - Set retention periods for attempt summaries, audit logs, and any consented diagnostic sample.
 - Benchmark HanziLookupJS/Rust-WASM and the separate stroke evaluator on the target iPad and representative phones; finish license notices for each code/data component before bundling them.

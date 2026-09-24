@@ -331,14 +331,26 @@ app.post("/api/v1/attempts", async (c) => {
   for (const attempt of body.attempts) {
     const table = attempt.contentType === "vocabulary" ? "vocabulary_entries" : "characters";
     const content = await c.env.DB.prepare(`SELECT id FROM ${table} WHERE id = ? AND status = 'approved'`).bind(attempt.contentId).first();
-    const reading = attempt.readingId ? await c.env.DB.prepare("SELECT id FROM readings WHERE id = ? AND status = 'approved'").bind(attempt.readingId).first() : true;
+    const reading = attempt.readingId ? await c.env.DB.prepare(`SELECT id FROM readings WHERE id = ? AND status = 'approved' AND (
+      (? = 'vocabulary' AND vocabulary_id = ?) OR (? = 'character' AND character_id = ?)
+    )`).bind(attempt.readingId, attempt.contentType, attempt.contentId, attempt.contentType, attempt.contentId).first() : true;
     if (!content || !reading) {
       rejected.push({ idempotencyKey: attempt.idempotencyKey, code: "content_unavailable", message: "Materi ini belum dapat disinkronkan." });
       continue;
     }
     if (attempt.curriculumPlacementId) {
-      const placement = await c.env.DB.prepare(`SELECT id FROM curriculum_placements WHERE id = ? AND ${attempt.contentType === "vocabulary" ? "vocabulary_id" : "character_id"} = ?`)
-        .bind(attempt.curriculumPlacementId, attempt.contentId).first();
+      const placement = await c.env.DB.prepare(`SELECT cp.id FROM curriculum_placements cp
+        JOIN curriculum_units cu ON cu.id = cp.unit_id
+        JOIN curricula c ON c.id = cu.curriculum_id
+        WHERE cp.id = ? AND cu.status = 'published' AND c.status = 'published' AND (
+          (? = 'vocabulary' AND cp.vocabulary_id = ?) OR
+          (? = 'character' AND (cp.character_id = ? OR EXISTS (
+            SELECT 1 FROM vocabulary_characters vc
+            WHERE vc.vocabulary_id = cp.vocabulary_id AND vc.character_id = ?
+          )))
+        )`)
+        .bind(attempt.curriculumPlacementId, attempt.contentType, attempt.contentId,
+          attempt.contentType, attempt.contentId, attempt.contentId).first();
       if (!placement) {
         rejected.push({ idempotencyKey: attempt.idempotencyKey, code: "placement_mismatch", message: "Konteks pelajaran tidak valid." });
         continue;
@@ -346,30 +358,38 @@ app.post("/api/v1/attempts", async (c) => {
     }
     const at = new Date().toISOString();
     const attemptId = crypto.randomUUID();
-    const isCorrect = Object.values(attempt.dimensions).some((value) => value === "correct" || value === "recognized" || value === "close_enough") ? 1 : 0;
+    const dimensionValues = Object.values(attempt.dimensions);
+    const passed = dimensionValues.length > 0 && dimensionValues.every((value) => value === "correct" || value === "recognized" || value === "close_enough");
+    const assessmentOutcome = dimensionValues.length === 0 ? "not_assessed" : passed ? "passed"
+      : dimensionValues.some((value) => value === "needs_practice" || value === "not_recognized") ? "needs_practice" : "uncertain";
+    const passedCount = passed ? 1 : 0;
     const [inserted] = await c.env.DB.batch([
       c.env.DB.prepare(`INSERT OR IGNORE INTO learning_attempts
-      (id, user_id, idempotency_key, content_type, content_id, reading_id, placement_id, activity_mode, dimensions_json, engine_version, created_at_client, accepted_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      (id, user_id, idempotency_key, content_type, content_id, reading_id, placement_id, activity_mode, dimensions_json, engine_version, created_at_client, accepted_at, assessment_outcome)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .bind(attemptId, principal.id, attempt.idempotencyKey, attempt.contentType, attempt.contentId,
           attempt.readingId ?? null, attempt.curriculumPlacementId ?? null, attempt.activityMode,
-          JSON.stringify(attempt.dimensions), attempt.engineVersion ?? null, attempt.createdAtClient, at),
+          JSON.stringify(attempt.dimensions), attempt.engineVersion ?? null, attempt.createdAtClient, at, assessmentOutcome),
       c.env.DB.prepare(`INSERT INTO learner_progress(user_id, content_type, content_id, attempts_count, correct_count, last_seen_at, next_review_at, dimension_summary_json)
-        SELECT ?, ?, ?, 1, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM learning_attempts WHERE id = ?)
+        SELECT ?, ?, ?, 1, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM learning_attempts WHERE id = ? AND assessment_outcome = ?)
+          AND NOT EXISTS (SELECT 1 FROM sync_receipts WHERE user_id = ? AND idempotency_key = ?)
         ON CONFLICT(user_id, content_type, content_id) DO UPDATE SET attempts_count = attempts_count + 1,
         correct_count = correct_count + excluded.correct_count, last_seen_at = excluded.last_seen_at,
         next_review_at = excluded.next_review_at, dimension_summary_json = excluded.dimension_summary_json,
         updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')`)
-        .bind(principal.id, attempt.contentType, attempt.contentId, isCorrect, at,
-          new Date(Date.now() + 86400000).toISOString(), JSON.stringify(attempt.dimensions), attemptId),
+        .bind(principal.id, attempt.contentType, attempt.contentId, passedCount, at,
+          new Date(Date.now() + 86400000).toISOString(), JSON.stringify(attempt.dimensions), attemptId, assessmentOutcome,
+          principal.id, attempt.idempotencyKey),
       c.env.DB.prepare(`INSERT INTO review_schedules(user_id, content_type, content_id, interval_days, repetition, due_at)
         SELECT ?, ?, ?, 1, 1, ? WHERE EXISTS (SELECT 1 FROM learning_attempts WHERE id = ?)
+          AND NOT EXISTS (SELECT 1 FROM sync_receipts WHERE user_id = ? AND idempotency_key = ?)
         ON CONFLICT(user_id, content_type, content_id) DO UPDATE SET
         interval_days = MIN(365, MAX(1, interval_days * CASE WHEN ? THEN ease_factor ELSE 0.5 END)),
         repetition = repetition + 1,
         due_at = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')`)
         .bind(principal.id, attempt.contentType, attempt.contentId, new Date(Date.now() + 86400000).toISOString(), attemptId,
-          isCorrect, new Date(Date.now() + 86400000).toISOString()),
+          principal.id, attempt.idempotencyKey,
+          passedCount, new Date(Date.now() + 86400000).toISOString()),
       c.env.DB.prepare(`INSERT OR IGNORE INTO sync_receipts(user_id, idempotency_key, accepted_at)
         SELECT ?, ?, accepted_at FROM learning_attempts WHERE id = ?`)
         .bind(principal.id, attempt.idempotencyKey, attemptId),
@@ -509,15 +529,40 @@ app.get("/api/v1/admin/learners/:learnerId", async (c) => {
     p.daily_goal_minutes, p.active_curriculum_id FROM user u JOIN learner_profiles p ON p.user_id = u.id WHERE u.id = ?`).bind(learnerId).first();
   await addAudit(c.env.DB, c.get("requestId"), principal.id, "admin.learner.read", "user", learnerId, learner ? "success" : "failure");
   if (!learner) return jsonError("not_found", "Pembelajar tidak ditemukan.", 404);
-  const [progress, daily, freehand] = await Promise.all([
-    c.env.DB.prepare("SELECT content_type AS contentType, content_id AS contentId, attempts_count AS attempts, correct_count AS correct, last_seen_at AS lastSeenAt, next_review_at AS nextReviewAt, dimension_summary_json AS dimensions FROM learner_progress WHERE user_id = ? ORDER BY last_seen_at DESC LIMIT 200").bind(learnerId).all(),
+  const [progress, curriculumProgress, daily, freehand] = await Promise.all([
+    c.env.DB.prepare(`SELECT p.content_type AS contentType, p.content_id AS contentId,
+      COALESCE(v.simplified_form, ch.hanzi) AS contentLabel,
+      p.attempts_count AS attempts, p.correct_count AS correct, p.last_seen_at AS lastSeenAt,
+      p.next_review_at AS nextReviewAt, p.dimension_summary_json AS dimensions
+      FROM learner_progress p
+      LEFT JOIN vocabulary_entries v ON p.content_type = 'vocabulary' AND v.id = p.content_id
+      LEFT JOIN characters ch ON p.content_type = 'character' AND ch.id = p.content_id
+      WHERE p.user_id = ? ORDER BY p.last_seen_at DESC LIMIT 200`).bind(learnerId).all(),
+    c.env.DB.prepare(`SELECT c.id AS curriculumId, c.slug AS curriculumSlug, c.name AS curriculumName, c.version AS curriculumVersion,
+      u.id AS unitId, u.title AS unitTitle, u.level_number AS levelNumber,
+      CASE WHEN c.slug = 'hsk-3' AND u.level_number BETWEEN 1 AND 3 THEN 'Tahap 1'
+        WHEN c.slug = 'hsk-3' AND u.level_number BETWEEN 4 AND 6 THEN 'Tahap 2'
+        WHEN c.slug = 'hsk-3' AND u.level_number BETWEEN 7 AND 9 THEN 'Tahap 3' ELSE NULL END AS stageName,
+      COUNT(*) AS attempts, COUNT(DISTINCT a.content_type || ':' || a.content_id) AS itemsPractised,
+      SUM(CASE WHEN a.assessment_outcome = 'passed' THEN 1 ELSE 0 END) AS passed,
+      SUM(CASE WHEN a.assessment_outcome = 'needs_practice' THEN 1 ELSE 0 END) AS needsPractice,
+      SUM(CASE WHEN a.assessment_outcome = 'uncertain' THEN 1 ELSE 0 END) AS uncertain,
+      SUM(CASE WHEN a.assessment_outcome = 'not_assessed' THEN 1 ELSE 0 END) AS notAssessed,
+      MAX(a.accepted_at) AS lastSeenAt
+      FROM learning_attempts a
+      JOIN curriculum_placements cp ON cp.id = a.placement_id
+      JOIN curriculum_units u ON u.id = cp.unit_id
+      JOIN curricula c ON c.id = u.curriculum_id
+      WHERE a.user_id = ?
+      GROUP BY c.id, c.slug, c.name, c.version, u.id, u.title, u.level_number
+      ORDER BY lastSeenAt DESC LIMIT 100`).bind(learnerId).all(),
     c.env.DB.prepare(`SELECT date(activity_at) AS day, SUM(attempt_count) AS attempts FROM (
       SELECT accepted_at AS activity_at, COUNT(*) AS attempt_count FROM learning_attempts WHERE user_id = ? AND accepted_at >= datetime('now','-30 days') GROUP BY date(accepted_at)
       UNION ALL SELECT occurred_at AS activity_at, COUNT(*) AS attempt_count FROM freehand_recognition_events WHERE user_id = ? AND occurred_at >= datetime('now','-30 days') GROUP BY date(occurred_at)
     ) GROUP BY date(activity_at) ORDER BY day`).bind(learnerId, learnerId).all(),
     c.env.DB.prepare("SELECT hanzi, unicode_code_point AS codePoint, engine_id AS engineId, candidate_rank AS candidateRank, occurred_at AS occurredAt FROM freehand_recognition_events WHERE user_id = ? ORDER BY occurred_at DESC LIMIT 100").bind(learnerId).all(),
   ]);
-  return c.json({ learner, progress: progress.results, activity: daily.results, freehand: freehand.results });
+  return c.json({ learner, progress: progress.results, curriculumProgress: curriculumProgress.results, activity: daily.results, freehand: freehand.results });
 });
 
 app.get("/api/v1/admin/content/review-queue", async (c) => {

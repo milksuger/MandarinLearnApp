@@ -8,7 +8,7 @@ Learner phone/tablet screens:
 
 - Sign-in and synchronization.
 - Home and today's study goal.
-- Daily vocabulary / HSK 3.0 path selection and HSK overview.
+- Daily vocabulary / HSK 2.0 / HSK 3.0 path selection, keeping both HSK versions distinct.
 - Vocabulary in context with sound, characters, examples, and meanings.
 - Guided writing on phone, iPad portrait, and iPad landscape.
 - Freehand writing and recognition with an explicit uncertain state.

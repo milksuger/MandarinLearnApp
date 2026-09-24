@@ -19,7 +19,7 @@ Choose a learning path → study a word in context → hear its verified Mandari
 The product has two parallel curriculum paths:
 
 1. **Daily vocabulary**, organized around useful real-life situations.
-2. **HSK 3.0**, organized into three stages and nine levels, with the standard version visible in the curriculum UI.
+2. **HSK 2.0**, organized into six levels, and **HSK 3.0**, organized into three stages and nine levels. Keep both standard versions visible and separate in the curriculum UI.
 
 The same word and character can appear in both paths. Do not present the product as a collection of isolated flip cards. Show the relationships between a word, its characters, its readings, meanings, examples, and course placements.
 
@@ -81,7 +81,7 @@ Show sign-in, account creation, password recovery, and a clear privacy link. The
 Ask only for useful setup choices:
 
 - Learner’s current Mandarin level.
-- Whether to begin with daily vocabulary, HSK 3.0, or both.
+- Whether to begin with daily vocabulary, HSK 2.0, HSK 3.0, or more than one path.
 - A modest daily study goal.
 
 Provide a skip/back path and explain that these settings can be changed later. Do not imply that onboarding locks the learner into a path.
@@ -94,7 +94,7 @@ Show:
 - Today’s practice goal and completed amount.
 - A clear “Continue learning” action.
 - Review items due today.
-- Entry points for Daily vocabulary and HSK 3.0.
+- Entry points for Daily vocabulary, HSK 2.0, and HSK 3.0.
 - A small, calm progress summary.
 - Account sync status and last successful sync, without making sync status the dominant element.
 
@@ -104,13 +104,13 @@ Use sample values only as prototype data. Avoid streak-shaming, urgency banners,
 
 Create a Daily vocabulary overview with situation-based units such as introductions, home, food, transport, and everyday needs. Show completed, in-progress, and not-yet-started units.
 
-Create an HSK 3.0 overview grouped into:
+Create separate versioned HSK overviews. HSK 2.0 has six levels. Group HSK 3.0 into:
 
 - Elementary: Levels 1–3.
 - Intermediate: Levels 4–6.
 - Advanced: Levels 7–9.
 
-Show per-level progress and lesson counts. Keep the HSK standard version visible and make the path versionable. Do not mix older HSK content into the HSK 3.0 path.
+Show per-level progress and lesson counts. Keep the HSK standard version visible and make paths versionable. Do not mix HSK 2.0 content into HSK 3.0 or the reverse.
 
 #### 5. Vocabulary in context
 

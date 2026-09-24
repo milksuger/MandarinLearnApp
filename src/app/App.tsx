@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, NavLink, Outlet, Route, Routes, useNavigate, useParams } from "react-router";
+import { Link, NavLink, Outlet, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router";
 import { Activity, ArrowLeft, ArrowRight, BookOpen, Check, ChevronRight, CircleHelp, Clock3, Cloud, Headphones, Home, Layers3, LogOut, Menu, RotateCcw, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
 import HanziWriter from "hanzi-writer";
 import OpenCC from "opencc-js/t2cn";
@@ -101,7 +101,7 @@ function HomePage({ user }: { user: SessionUser | null }) {
     <section className="greeting-row"><div><p className="eyebrow">SELAMAT DATANG KEMBALI</p><h1>你好, {name} <span className="wave">✦</span></h1><p className="muted">Setiap guratan membawamu selangkah lebih dekat.</p></div><div className="streak-chip"><Sparkles size={17} /><span><strong>—</strong><small>hari berturut-turut</small></span></div></section>
     <section className="daily-card"><div className="daily-copy"><span className="tag tag-white">TUJUAN HARI INI</span><h2>Belajar sedikit, setiap hari.</h2><p>Mulai dengan beberapa kata yang berguna dalam kehidupan sehari-hari.</p><Link to="/paths" className="button button-dark">Mulai belajar <ArrowRight size={16} /></Link></div><div className="daily-art" aria-hidden="true"><span>山</span><small>shān · gunung</small></div></section>
     <section className="metric-grid"><MetricCard icon={<BookOpen />} label="Materi dipelajari" value={metrics?.learned_items ?? 0} unit="kata & karakter" /><MetricCard icon={<Activity />} label="Latihan selesai" value={metrics?.attempts ?? 0} unit="semua sesi" /><MetricCard icon={<Clock3 />} label="Ulangi hari ini" value="—" unit="menunggu materi" /></section>
-    <div className="section-heading"><div><h2>Jalur belajarmu</h2><p>Belajar dari keseharian atau ikuti susunan HSK 3.0.</p></div><Link to="/paths" className="text-link">Lihat semua <ChevronRight size={16} /></Link></div>
+    <div className="section-heading"><div><h2>Jalur belajarmu</h2><p>Belajar dari keseharian atau pilih susunan HSK 2.0 maupun HSK 3.0.</p></div><Link to="/paths" className="text-link">Lihat semua <ChevronRight size={16} /></Link></div>
     {error && <InlineNotice>{error}</InlineNotice>}
     {paths.length ? <div className="path-cards">{paths.map((path) => <PathCard key={path.id} path={path} />)}</div> : <div className="empty-card"><div className="empty-icon"><Layers3 /></div><h3>Jalur materi sedang disiapkan</h3><p>Materi baru akan muncul setelah ditinjau untuk memastikan arti, pelafalan dan sumbernya benar.</p><Link className="button button-soft" to="/paths">Jelajahi jalur belajar <ArrowRight size={16} /></Link></div>}
     <footer className="trust-note"><ShieldCheck size={16} /> Audio dan data guratan yang digunakan mencantumkan sumber, lisensi, dan checksum. <Link to="/credits">Lihat kredit</Link></footer>
@@ -115,7 +115,7 @@ function MetricCard({ icon, label, value, unit }: { icon: React.ReactNode; label
 function PathCard({ path }: { path: { id: string; slug: string; name: string; kind: string; description: string | null } }) {
   const hsk = path.kind === "hsk";
   return <Link to={`/paths/${path.id}`} className={`path-card ${hsk ? "path-hsk" : "path-daily"}`}>
-    <span className="path-glyph">{hsk ? "级" : "日"}</span><div><span className="tag">{hsk ? "HSK 3.0" : "KEHIDUPAN SEHARI-HARI"}</span><h3>{path.name}</h3><p>{path.description ?? "Materi disusun bertahap."}</p></div><ChevronRight className="path-arrow" />
+    <span className="path-glyph">{hsk ? "级" : "日"}</span><div><span className="tag">{hsk ? (path.slug === "hsk-2" ? "HSK 2.0 · 6 TINGKAT" : "HSK 3.0 · 9 TINGKAT") : "KEHIDUPAN SEHARI-HARI"}</span><h3>{path.name}</h3><p>{path.description ?? "Materi disusun bertahap."}</p></div><ChevronRight className="path-arrow" />
   </Link>;
 }
 
@@ -130,10 +130,11 @@ function PathsPage() {
 function PathPage() {
   const { pathId = "" } = useParams();
   const [units, setUnits] = useState<Array<{ id: string; title: string; description: string | null; ordinal: number; placement_count: number }>>([]);
-  const pathName = pathId === "curriculum-hsk-3" ? "HSK 3.0" : "Keseharian";
+  const pathName = pathId === "curriculum-hsk-3" ? "HSK 3.0 · 9 tingkat" : pathId === "curriculum-hsk-2" ? "HSK 2.0 · 6 tingkat" : "Keseharian";
+  const hskPath = pathId === "curriculum-hsk-3" || pathId === "curriculum-hsk-2";
   useEffect(() => { void api<{ units: typeof units }>(`/paths/${encodeURIComponent(pathId)}/units`).then((data) => setUnits(data.units)).catch(() => setUnits([])); }, [pathId]);
-  return <Protected><div className="page-wrap"><PageBack to="/paths" /><PageTitle eyebrow="JALUR BELAJAR" title={pathName || "Susunan materi"} subtitle="Setiap unit akan muncul setelah kata, contoh, bacaan, dan sumbernya selesai ditinjau." />
-    {units.length ? <div className="unit-list">{units.map((unit) => <Link className="unit-row" to={`/unit/${unit.id}`} key={unit.id}><span className="unit-number">{String(unit.ordinal + 1).padStart(2, "0")}</span><span className="unit-copy"><strong>{unit.title}</strong><small>{unit.description ?? `${unit.placement_count} materi`}</small></span><span className="unit-progress">{unit.placement_count} materi</span><ChevronRight /></Link>)}</div> : <div className="empty-card"><div className="hsk-level-strip">{Array.from({ length: 9 }, (_, i) => <span key={i}>Tingkat {i + 1}</span>)}</div><h3>Daftar pelajaran akan segera tersedia</h3><p>Kami tidak menampilkan jumlah kata HSK yang belum diverifikasi dari sumber resmi.</p></div>}
+  return <Protected><div className="page-wrap"><PageBack to="/paths" /><PageTitle eyebrow="JALUR BELAJAR" title={pathName || "Susunan materi"} subtitle={hskPath ? "Susunan tingkat mengacu pada kerangka HSK yang dipilih. Daftar kata dan isi silabus resmi belum disalin; setiap tingkat yang kosong akan ditandai sampai sumbernya boleh digunakan." : "Setiap unit akan muncul setelah kata, contoh, bacaan, dan sumbernya selesai ditinjau."} />
+    {units.length ? <div className="unit-list">{units.map((unit) => <Link className="unit-row" to={`/unit/${unit.id}`} key={unit.id}><span className="unit-number">{String(unit.ordinal + 1).padStart(2, "0")}</span><span className="unit-copy"><strong>{unit.title}</strong><small>{unit.description ?? `${unit.placement_count} materi`}</small></span><span className="unit-progress">{unit.placement_count} materi</span><ChevronRight /></Link>)}</div> : <div className="empty-card"><div className="hsk-level-strip">{Array.from({ length: pathId === "curriculum-hsk-2" ? 6 : 9 }, (_, i) => <span key={i}>Tingkat {i + 1}</span>)}</div><h3>Daftar pelajaran akan segera tersedia</h3><p>Kami tidak menampilkan jumlah kata HSK yang belum diverifikasi dari sumber resmi.</p></div>}
   </div></Protected>;
 }
 
@@ -143,24 +144,47 @@ function LessonPage() {
   const [items, setItems] = useState<UnitItem[]>([]);
   useEffect(() => { void api<{ unit: Unit; items: UnitItem[] }>(`/units/${encodeURIComponent(unitId)}`).then((data) => { setUnit(data.unit); setItems(data.items); }).catch(() => { setUnit(null); setItems([]); }); }, [unitId]);
   return <Protected><div className="page-wrap"><PageBack to="/paths" /><PageTitle eyebrow={unit?.curriculum_name ?? "PELAJARAN"} title={unit?.title ?? "Pelajaran"} subtitle={unit?.description ?? "Kenali kata, konteks penggunaan, dan cara menulisnya."} />
-    {items.length ? <div className="lesson-items">{items.map((item) => <article className="vocab-row" key={item.placement_id}><span className="hanzi-thumb">{item.simplified_form ?? item.hanzi}</span><div><strong>{item.simplified_form ?? item.hanzi}</strong><small>{item.numbered_pinyin ?? "Pengucapan ditinjau"} · {item.gloss ?? "Arti sedang ditinjau"}</small></div><AudioButton assetId={item.audio_id} /><Link className="icon-button" to={item.vocabulary_id ? `/word/${item.vocabulary_id}` : `/write/${item.character_id}`} aria-label="Buka materi"><ChevronRight /></Link></article>)}</div> : <div className="empty-card"><div className="empty-icon"><BookOpen /></div><h3>Belum ada materi terbit</h3><p>Bagian ini menampilkan materi yang sudah lolos pemeriksaan editorial. Draf tidak ikut disajikan ke pembelajar.</p></div>}
+    {items.length ? <div className="lesson-items">{items.map((item) => {
+      const context = new URLSearchParams({ placementId: item.placement_id, unitId });
+      const to = item.vocabulary_id ? `/word/${item.vocabulary_id}?${context}` : `/write/${item.character_id}?${context}`;
+      return <article className="vocab-row" key={item.placement_id}><span className="hanzi-thumb">{item.simplified_form ?? item.hanzi}</span><div><strong>{item.simplified_form ?? item.hanzi}</strong><small>{item.numbered_pinyin ?? "Pengucapan ditinjau"} · {item.gloss ?? "Arti sedang ditinjau"}</small></div><AudioButton assetId={item.audio_id} /><Link className="icon-button" to={to} aria-label="Buka materi"><ChevronRight /></Link></article>;
+    })}</div> : <div className="empty-card"><div className="empty-icon"><BookOpen /></div><h3>Belum ada materi terbit</h3><p>Bagian ini menampilkan materi yang sudah lolos pemeriksaan editorial. Draf tidak ikut disajikan ke pembelajar.</p></div>}
   </div></Protected>;
 }
 
 function WordPage() {
   const { entryId = "" } = useParams();
+  const [searchParams] = useSearchParams();
+  const placementId = searchParams.get("placementId");
+  const unitId = searchParams.get("unitId");
+  const writeParams = new URLSearchParams();
+  if (placementId) writeParams.set("placementId", placementId);
+  if (unitId) writeParams.set("unitId", unitId);
+  writeParams.set("returnWordId", entryId);
+  const writeQuery = `?${writeParams}`;
   const [entry, setEntry] = useState<{ entry: { id: string; simplifiedForm: string; partOfSpeech?: string }; readings: Array<{ id: string; contextText: string; pinyin: string; numberedPinyin: string; audioId?: string }>; senses: Array<{ id: string; text: string; usageLabel?: string }>; examples: Array<{ id: string; simplifiedText: string; numberedPinyin: string; translation: string }>; characters: Array<{ id: string; hanzi: string; strokeCount: number; strokeDataStatus: string }> } | null>(null);
   useEffect(() => { void api<typeof entry>(`/vocabulary/${encodeURIComponent(entryId)}`).then(setEntry).catch(() => setEntry(null)); }, [entryId]);
   if (!entry) return <Protected><div className="page-wrap"><PageBack /><EmptyContent message="Kata ini belum tersedia untuk dipelajari." /></div></Protected>;
-  return <Protected><div className="page-wrap word-page"><PageBack to="/unit/" /><div className="word-hero"><span className="tag">KATA DALAM KONTEKS</span><h1>{entry.entry.simplifiedForm}</h1><p>{entry.readings[0]?.numberedPinyin ?? "Pelafalan sedang ditinjau"}</p><AudioButton assetId={entry.readings[0]?.audioId} prominent /></div>
+  return <Protected><div className="page-wrap word-page"><PageBack to={unitId ? `/unit/${unitId}` : "/paths"} /><div className="word-hero"><span className="tag">KATA DALAM KONTEKS</span><h1>{entry.entry.simplifiedForm}</h1><p>{entry.readings[0]?.numberedPinyin ?? "Pelafalan sedang ditinjau"}</p><AudioButton assetId={entry.readings[0]?.audioId} prominent /></div>
     <section className="detail-card"><h2>Makna</h2>{entry.senses.length ? entry.senses.map((sense) => <p key={sense.id}>{sense.text}<span className="muted"> {sense.usageLabel}</span></p>) : <InlineNotice>Terjemahan bahasa Indonesia belum disetujui.</InlineNotice>}</section>
-    <section className="detail-card"><h2>Karakter penyusun</h2><div className="character-strip">{entry.characters.map((char) => <Link key={char.id} to={`/write/${char.id}`}><strong>{char.hanzi}</strong><small>{char.strokeCount} guratan</small></Link>)}</div></section>
+    <section className="detail-card"><h2>Karakter penyusun</h2><div className="character-strip">{entry.characters.map((char) => <Link key={char.id} to={`/write/${char.id}${writeQuery}`}><strong>{char.hanzi}</strong><small>{char.strokeCount} guratan</small></Link>)}</div></section>
     <section className="detail-card"><h2>Contoh kalimat</h2>{entry.examples.length ? entry.examples.map((example) => <div className="example" key={example.id}><strong>{example.simplifiedText}</strong><small>{example.numberedPinyin}</small><p>{example.translation}</p></div>) : <p className="muted">Contoh pemakaian akan tampil setelah ditinjau.</p>}</section>
   </div></Protected>;
 }
 
 function GuidedWritingPage() {
   const { characterId = "" } = useParams();
+  const [searchParams] = useSearchParams();
+  const placementId = searchParams.get("placementId");
+  const unitId = searchParams.get("unitId");
+  const returnWordId = searchParams.get("returnWordId");
+  const returnParams = new URLSearchParams();
+  if (placementId) returnParams.set("placementId", placementId);
+  if (unitId) returnParams.set("unitId", unitId);
+  const returnQuery = returnParams.toString();
+  const returnTo = returnWordId
+    ? `/word/${returnWordId}${returnQuery ? `?${returnQuery}` : ""}`
+    : unitId ? `/unit/${unitId}` : "/paths";
   const { data: currentSession } = useLearnerSession();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [target, setTarget] = useState<{ hanzi: string; strokeCount: number; strokeDataStatus: string } | null>(null);
@@ -196,13 +220,13 @@ function GuidedWritingPage() {
         onMistake: (stroke) => setResult(`Perhatikan arah dan urutan guratan ${stroke.strokeNum + 1}`),
         onComplete: (summary) => {
           setResult(summary.totalMistakes ? `Sesi selesai · ${summary.totalMistakes} koreksi arah atau bentuk` : "Semua guratan selesai dengan benar");
-          if (currentSession?.user.id) void saveAttempt({ contentType: "character", contentId: characterId, activityMode: "guided_writing", dimensions: { strokeOrder: summary.totalMistakes ? "needs_practice" : "correct" }, engineVersion: "hanzi-writer-local" }, currentSession.user.id);
+          if (currentSession?.user.id) void saveAttempt({ contentType: "character", contentId: characterId, curriculumPlacementId: placementId ?? undefined, activityMode: "guided_writing", dimensions: { strokeOrder: summary.totalMistakes ? "needs_practice" : "correct" }, engineVersion: "hanzi-writer-local" }, currentSession.user.id);
         },
       });
     }).catch(() => { if (!cancelled) setWriterState("unavailable"); });
     return () => { cancelled = true; writer?.cancelQuiz(); };
-  }, [characterId]);
-  return <Protected><div className="practice-page"><PageBack to="/paths" /><div className="practice-heading"><div><span className="tag">逐筆引導 · LATIHAN MENULIS</span><h1>{target?.hanzi ?? "写"}</h1><p>{target ? `${target.strokeCount} guratan · ikuti petunjuk satu筆一筆` : "Pilih karakter dari pelajaran yang tersedia."}</p></div><button className="button button-soft" onClick={() => window.location.reload()}><RotateCcw size={16} /> Ulangi</button></div>
+  }, [characterId, currentSession?.user.id, placementId]);
+  return <Protected><div className="practice-page"><PageBack to={returnTo} /><div className="practice-heading"><div><span className="tag">逐筆引導 · LATIHAN MENULIS</span><h1>{target?.hanzi ?? "写"}</h1><p>{target ? `${target.strokeCount} guratan · ikuti petunjuk satu筆一筆` : "Pilih karakter dari pelajaran yang tersedia."}</p></div><button className="button button-soft" onClick={() => window.location.reload()}><RotateCcw size={16} /> Ulangi</button></div>
     <div className="writing-layout"><div className="writing-main"><div id="stroke-writer" className="writer-board" ref={containerRef}><div className="practice-grid" aria-hidden="true" /></div><div className={`practice-feedback ${result.includes("benar") ? "feedback-good" : ""}`} aria-live="polite">{writerState === "loading" ? "Memuat data guratan yang telah ditinjau…" : writerState === "unavailable" ? "Data guratan berlisensi dan terverifikasi belum tersedia untuk karakter ini." : result || "Mulai dengan mengikuti petunjuk guratan."}</div></div>
       <aside className="writing-aside"><div className="aside-card"><span className="aside-step">LATIHAN</span><strong>Tulis berdasarkan urutan</strong><p>Mulai dari titik dan arah yang ditunjukkan. Jika keliru, petunjuk akan muncul kembali.</p></div><div className="aside-card aside-light"><span className="aside-step">YANG DINILAI</span><span className="check-line"><Check /> Urutan guratan</span><span className="check-line"><Check /> Arah guratan</span><span className="check-line"><Check /> Bentuk mendekati contoh</span></div><div className="aside-note"><ShieldCheck size={15} /> Jejak pena tidak disimpan di server.</div></aside>
     </div></div></Protected>;
@@ -352,6 +376,7 @@ function CreditsPage() {
   return <div className="page-wrap"><PageBack to="/profile" /><PageTitle eyebrow="KREDIT & LISENSI" title="Sumber materi dan teknologi" subtitle="Materi terbuka mempertahankan atribusi dan lisensinya sendiri; lisensi aplikasi tidak menggantikannya." />
     <section className="detail-card"><h2>Data urutan guratan</h2><p>Karakter awal memakai Hanzi Writer Data 2.0.1 dari Make Me a Hanzi, yang menyatakan data guratan berasal dari glyph Arphic. Data ini berlisensi Arphic Public License dan bukan klaim bahwa setiap urutan telah disahkan Kementerian Pendidikan Tiongkok.</p><p><a href="https://github.com/chanind/hanzi-writer-data" target="_blank" rel="noreferrer">Repositori Hanzi Writer Data</a> · <a href="https://github.com/chanind/hanzi-writer-data/blob/master/ARPHICPL.TXT" target="_blank" rel="noreferrer">Teks Arphic Public License</a></p></section>
     <section className="detail-card"><h2>Rekaman Mandarin</h2><p>“你好” — Sjors Provoost, sumber Wikimedia Commons, CC BY-SA 3.0. <a href="https://commons.wikimedia.org/wiki/File:Zh_n%C7%90_h%C7%8Eo.ogg" target="_blank" rel="noreferrer">File sumber</a>.</p><p>“你 / nǐ” — Wei Gao dan Vion Nicolas, sumber Wikimedia Commons, CC BY 2.0 fr. <a href="https://commons.wikimedia.org/wiki/File:Zh-n%C7%90.ogg" target="_blank" rel="noreferrer">File sumber</a>.</p><p>Wiktionary mencantumkan file “你好” untuk pembacaan Mandarin <i>nǐ hǎo</i>: <a href="https://en.wiktionary.org/wiki/n%C7%90_h%C7%8Eo" target="_blank" rel="noreferrer">entri pelafalan</a>. Ini adalah rekaman komunitas dengan lisensi terbuka, bukan rekaman pemerintah atau sertifikasi fonetik resmi. Ogg sumber ditranskode ke MP3 demi kompatibilitas browser; audio ucapannya tidak diedit.</p></section>
+    <section className="detail-card"><h2>Struktur HSK</h2><p>Jalur HSK 2.0 enam tingkat dan HSK Baru tiga tahap/sembilan tingkat memakai metadata struktur dari <a href="https://www.chinesetest.cn/hsk" target="_blank" rel="noreferrer">Chinese Tests Service Website</a>. Daftar kosakata, tata bahasa, dan isi silabus resmi tidak disalin ke aplikasi karena izin redistribusi belum dipastikan.</p></section>
     <section className="detail-card"><h2>Teknologi</h2><ul><li>React, React Router, TypeScript, Vite, Hono, Better Auth, Zod, IndexedDB, dan Cloudflare Workers/D1.</li><li>Hanzi Writer untuk animasi dan latihan guratan; library-nya MIT, data karakternya memakai lisensi terpisah.</li><li>Hanzi Lookup WASM untuk saran pengenalan tulisan tangan lokal; kodenya LGPL-3.0 dan data bentuk tertanam berlisensi Arphic Public License.</li><li>OpenCC JS untuk normalisasi kandidat tradisional menjadi sederhana; source, data, dan lisensinya dicatat di <code>THIRD_PARTY_NOTICES.md</code> pada repositori.</li></ul></section>
     <section className="detail-card"><h2>Catatan penggunaan</h2><p>Audio yang belum memiliki rekaman tepat untuk kata dan konteksnya akan tetap ditampilkan sebagai belum tersedia. Kami tidak menggabungkan bunyi per suku kata atau menggantinya dengan suara sintesis yang belum diverifikasi.</p><p>Setiap aset menyimpan checksum dan bukti lisensi. Pengelola tetap dapat membuka sumbernya untuk melakukan pemeriksaan ulang atau menolak aset.</p></section>
   </div>;
@@ -427,10 +452,22 @@ function AdminLearners() {
 
 function AdminLearnerPage() {
   const { learnerId = "" } = useParams();
-  const [data, setData] = useState<{ learner: { name: string; email: string; createdAt: string; daily_goal_minutes: number }; progress: Array<{ contentType: string; contentId: string; attempts: number; correct: number; lastSeenAt: string; dimensions: string }>; activity: Array<{ day: string; attempts: number }>; freehand: Array<{ hanzi: string; codePoint: string; engineId: string; candidateRank: number; occurredAt: string }> } | null>(null);
+  const [data, setData] = useState<{
+    learner: { name: string; email: string; createdAt: string; daily_goal_minutes: number };
+    progress: Array<{ contentType: string; contentId: string; contentLabel: string | null; attempts: number; correct: number; lastSeenAt: string; dimensions: string }>;
+    curriculumProgress: Array<{ curriculumName: string; curriculumVersion: string; unitTitle: string; levelNumber: number | null; stageName: string | null; attempts: number; passed: number; needsPractice: number; uncertain: number; notAssessed: number; itemsPractised: number; lastSeenAt: string }>;
+    activity: Array<{ day: string; attempts: number }>;
+    freehand: Array<{ hanzi: string; codePoint: string; engineId: string; candidateRank: number; occurredAt: string }>;
+  } | null>(null);
   const [error, setError] = useState("");
   useEffect(() => { void api<typeof data>(`/admin/learners/${encodeURIComponent(learnerId)}`).then(setData).catch((cause) => setError(cause instanceof Error ? cause.message : "Profil tidak tersedia.")); }, [learnerId]);
-  return <><PageBack to="/admin/learners" /><AdminPageHead eyebrow="PROFIL PEMBELAJAR" title={data?.learner.name ?? "Detail pembelajar"} subtitle="Akses sensitif ini dicatat otomatis di audit." />{error && <InlineNotice tone="danger">{error}</InlineNotice>}{data && <><div className="learner-admin-hero"><div className="profile-avatar">{data.learner.name.slice(0, 1)}</div><div><strong>{data.learner.email}</strong><small>Bergabung {new Date(data.learner.createdAt).toLocaleDateString("id-ID")} · target {data.learner.daily_goal_minutes} menit / hari</small></div></div><div className="admin-kpi-grid"><AdminKpi icon={<BookOpen />} label="Materi dipelajari" value={data.progress.length} /><AdminKpi icon={<Activity />} label="Latihan tersimpan" value={data.progress.reduce((sum, item) => sum + item.attempts, 0)} /><AdminKpi icon={<Clock3 />} label="Hari aktif tercatat" value={data.activity.length} /></div><div className="admin-panel individual-progress"><div className="panel-head"><div><h2>Kemajuan per materi</h2><p>Ringkasan hasil tersimpan; jejak pena mentah tidak disimpan.</p></div></div>{data.progress.length ? data.progress.map((item) => <div className="progress-row" key={`${item.contentType}-${item.contentId}`}><span className="hanzi-thumb">{item.contentId.startsWith("unicode:") ? item.contentId.slice(8, 9) : item.contentType === "character" ? "字" : "词"}</span><div><strong>{item.contentId.startsWith("unicode:") ? "Karakter hasil pengenalan" : item.contentType === "character" ? "Karakter" : "Kosakata"} · {item.contentId}</strong><small>{item.attempts} latihan · terakhir {item.lastSeenAt ? new Date(item.lastSeenAt).toLocaleDateString("id-ID") : "Belum tercatat"}</small></div><span className="progress-score">{item.correct}/{item.attempts}</span></div>) : <div className="table-empty">Belum ada aktivitas tersinkron.</div>}</div><div className="admin-panel individual-progress"><div className="panel-head"><div><h2>Karakter bebas dikonfirmasi</h2><p>Hanya karakter yang dipilih pembelajar setelah melihat kandidat; tidak ada goresan mentah.</p></div></div>{data.freehand.length ? data.freehand.map((item, index) => <div className="progress-row" key={`${item.codePoint}-${item.occurredAt}-${index}`}><span className="hanzi-thumb">{item.hanzi}</span><div><strong>{item.hanzi} · {item.codePoint}</strong><small>{item.engineId} · kandidat nomor {item.candidateRank} · {new Date(item.occurredAt).toLocaleString("id-ID")}</small></div></div>) : <div className="table-empty">Belum ada konfirmasi pengenalan bebas.</div>}</div></>}</>;
+  return <><PageBack to="/admin/learners" /><AdminPageHead eyebrow="PROFIL PEMBELAJAR" title={data?.learner.name ?? "Detail pembelajar"} subtitle="Akses sensitif ini dicatat otomatis di audit." />{error && <InlineNotice tone="danger">{error}</InlineNotice>}{data && <>
+    <div className="learner-admin-hero"><div className="profile-avatar">{data.learner.name.slice(0, 1)}</div><div><strong>{data.learner.email}</strong><small>Bergabung {new Date(data.learner.createdAt).toLocaleDateString("id-ID")} · target {data.learner.daily_goal_minutes} menit / hari</small></div></div>
+    <div className="admin-kpi-grid"><AdminKpi icon={<BookOpen />} label="Materi dipelajari" value={data.progress.length} /><AdminKpi icon={<Activity />} label="Latihan tersimpan" value={data.progress.reduce((sum, item) => sum + item.attempts, 0)} /><AdminKpi icon={<Clock3 />} label="Hari aktif tercatat" value={data.activity.length} /></div>
+    <div className="admin-panel individual-progress"><div className="panel-head"><div><h2>Kemajuan menurut jalur belajar</h2><p>Latihan ditautkan ke jalur dan unit asal. “Lolos” berarti semua dimensi yang dinilai pada sesi itu lulus.</p></div></div>{data.curriculumProgress.length ? data.curriculumProgress.map((item) => <div className="progress-row" key={`${item.curriculumName}-${item.unitTitle}`}><span className="unit-number">{item.levelNumber ?? "日"}</span><div><strong>{item.curriculumName} · {item.stageName ? `${item.stageName} · ` : ""}{item.unitTitle}</strong><small>{item.curriculumVersion} · {item.itemsPractised} materi · {item.attempts} sesi · terakhir {item.lastSeenAt ? new Date(item.lastSeenAt).toLocaleDateString("id-ID") : "Belum tercatat"}</small><small>{item.passed} lolos · {item.needsPractice} perlu latihan · {item.uncertain} belum pasti · {item.notAssessed} belum dinilai</small></div><span className="progress-score">{item.passed}/{item.attempts}</span></div>) : <div className="table-empty">Belum ada latihan yang terhubung dengan unit belajar.</div>}</div>
+    <div className="admin-panel individual-progress"><div className="panel-head"><div><h2>Kemajuan per materi</h2><p>Ringkasan hasil tersimpan; jejak pena mentah tidak disimpan.</p></div></div>{data.progress.length ? data.progress.map((item) => <div className="progress-row" key={`${item.contentType}-${item.contentId}`}><span className="hanzi-thumb">{item.contentLabel?.slice(0, 1) ?? (item.contentId.startsWith("unicode:") ? item.contentId.slice(8, 9) : item.contentType === "character" ? "字" : "词")}</span><div><strong>{item.contentType === "character" ? "Karakter" : "Kosakata"} · {item.contentLabel ?? item.contentId}</strong><small>{item.attempts} latihan · terakhir {item.lastSeenAt ? new Date(item.lastSeenAt).toLocaleDateString("id-ID") : "Belum tercatat"}</small></div><span className="progress-score">{item.correct}/{item.attempts}</span></div>) : <div className="table-empty">Belum ada aktivitas tersinkron.</div>}</div>
+    <div className="admin-panel individual-progress"><div className="panel-head"><div><h2>Karakter bebas dikonfirmasi</h2><p>Hanya karakter yang dipilih pembelajar setelah melihat kandidat; tidak ada goresan mentah.</p></div></div>{data.freehand.length ? data.freehand.map((item, index) => <div className="progress-row" key={`${item.codePoint}-${item.occurredAt}-${index}`}><span className="hanzi-thumb">{item.hanzi}</span><div><strong>{item.hanzi} · {item.codePoint}</strong><small>{item.engineId} · kandidat nomor {item.candidateRank} · {new Date(item.occurredAt).toLocaleString("id-ID")}</small></div></div>) : <div className="table-empty">Belum ada konfirmasi pengenalan bebas.</div>}</div>
+  </>}</>;
 }
 
 function AdminContent() {
