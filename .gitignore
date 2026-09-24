@@ -1,0 +1,18 @@
+# Dependencies and generated output
+node_modules/
+dist/
+build/
+coverage/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+.dev.vars
+
+# Cloudflare local state
+.wrangler/
+
+# Operating system files
+.DS_Store
+Thumbs.db
