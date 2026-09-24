@@ -27,8 +27,9 @@ The same word and character can appear in both paths. Do not present the product
 
 - The learner must sign in. Their account, learning progress, and practice history synchronize through the server across phone, iPad, and desktop.
 - The app may cache lessons and approved audio for offline study. If attempts are made offline, show that they are queued and pending server sync. The device is not the canonical account database.
-- Include a protected administrator area for observing usage and content quality.
+- Include a protected administrator area for observing usage and content quality, with a searchable learner directory and a detailed, audited individual progress profile.
 - The learner-facing app must have no subscription wall, lesson quota, or feature paywall.
+- The operating design must not depend on a paid API or paid hosting tier. When a free quota is exhausted, pause or degrade the affected operation and explain the state; never silently switch to a paid service or upgrade.
 - Use Simplified Chinese only. Do not add Traditional Chinese characters or region-specific Traditional-writing controls.
 - The interface language is Bahasa Indonesia. Learning content includes Simplified Hanzi, tone-marked Pinyin, and concise Indonesian meanings and instructions.
 - Audio must be tied to an approved reading and context. Never play an unverified voice just to avoid silence. If no verified audio is available, keep the tone-marked Pinyin visible and provide a clear retry or unavailable state.
@@ -203,7 +204,7 @@ Explain that local cached content supports offline practice while the account’
 
 #### 10. Protected administrator overview
 
-Create a visually separate admin area with a role-protected entry. Use a desktop-first dashboard that remains usable on iPad.
+Create a visually separate admin area with a role-protected entry. Use a desktop-first dashboard that remains usable on iPad. Include a learner directory and connected individual learner profile so an authorized admin can inspect a learner’s curriculum and skill-by-skill progress; every individual profile view is recorded in an audit log.
 
 Show aggregate usage and quality measures:
 
@@ -214,8 +215,9 @@ Show aggregate usage and quality measures:
 - Sync failure rate.
 - Audio playback failures and approved-asset fallback rate.
 - Handwriting recognition confidence and retry rate.
+- Individual learner progress by reading, pronunciation/listening, guided stroke order, and freehand recognition, with uncertainty kept distinct from success/failure.
 
-Use clear date filters and readable charts. Do not show raw microphone audio or raw handwriting strokes in routine analytics. Avoid fake personal details; use clearly marked mock data.
+Use clear date filters and readable charts. Do not show raw microphone audio or raw handwriting strokes in routine analytics. Use pseudonymous learner identifiers, mask contact details, log individual profile views, and avoid fake personal details; use clearly marked mock data.
 
 #### 11. Administrator content and audio quality
 
@@ -251,6 +253,8 @@ Keep Chinese text and tone-marked Pinyin visually distinct but readable. Never d
 ### Prototype delivery
 
 Generate a connected prototype, not a set of unrelated mockups. Include the main learner flow from sign-in through a writing session and review, plus a separate protected admin flow. Create responsive variants for phone, iPad portrait, iPad landscape, and desktop. Show key interaction states for stylus writing, uncertain recognition, audio playback failure, offline attempts, and server synchronization.
+
+For the complete admin navigation, individual learner profile, content provenance, speech/writing quality, and audit/privacy screens, use the separate [administrator portal Stitch prompt](admin-stitch-prompt.md).
 
 Use consistent components and spacing across screens. Make the writing canvas the main visual focus during practice. Keep implementation/provider details out of learner-facing screens. Label any assumptions or placeholder values clearly; do not invent a voice-service guarantee, handwriting accuracy percentage, or copyrighted lesson text.
 

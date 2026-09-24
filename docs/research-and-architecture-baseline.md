@@ -10,9 +10,11 @@ Research checked on 2026-09-24. This note records product decisions and verified
 - Support desktop, phone, and iPad, with special attention to stylus input on iPad (8th generation).
 - Require accounts, a backend, a database, and cross-device progress synchronization in the first release.
 - A local cache may support offline practice and backups. It is not the sole or authoritative store.
-- Include a protected administrator area for observing product usage.
+- Include a protected administrator area for aggregate usage and individual learner progress, with role-based access and an audit trail for individual profile views.
 - Start on Cloudflare and preserve the ability to move or extend the backend later.
-- Publish the project on GitHub as open source and credit technical and content sources.
+- Publish the project on GitHub as open source under the MIT license for the application code, and credit technical and content sources under their own licenses.
+- Support a growing public community of Indonesian learners, not just one household.
+- Do not incur charges: exclude paid APIs and paid hosting/services. If free-tier limits are approached or exhausted, throttle or pause the affected feature and notify the admin; do not silently upgrade, start billing, or fail over to a paid provider.
 
 ## Product and data design
 
@@ -27,33 +29,29 @@ Do not model a vocabulary item as one front/back flashcard row. Keep reusable la
 - A learner attempt records account ID, content ID, activity mode, assessment dimensions, result/confidence, timestamps, and the curriculum context. Progress summaries and review schedules are separate and can be recalculated from history.
 - Content records retain source, source version/date, license, attribution, data checksum, editorial changes, and review state. HSK placement includes the standard version and level.
 
-Keep code, externally licensed datasets, and generated audio as separable packages with explicit licenses. Do not commit bulk source data until its redistribution terms and attribution are recorded.
+Keep MIT-licensed application code, externally licensed datasets, stroke-recognition packages, model weights, and audio assets as separable components with explicit notices. Do not commit bulk source data until its redistribution terms and attribution are recorded. Store per-source license and provenance independently of the app's MIT license.
 
 ## Pronunciation quality policy
 
-Correctness takes priority over always producing sound. A TTS provider is not a pronunciation authority:
+Correctness takes priority over always producing sound. An audio source is not a pronunciation authority by itself:
 
-1. Store audio against a reviewed reading and a context phrase, never only against an ambiguous character.
-2. Compare provider samples for Mainland Standard Mandarin on a curated benchmark that includes tone contrasts, tone sandhi, neutral tone, and polyphonic characters in context. Have a qualified Mandarin speaker review the chosen samples before they become approved content.
-3. Store the approved recording or approved generated output as a versioned audio asset in server storage/CDN. Record provider/model/voice, input text, reading ID, asset hash, license/terms, reviewer state, and replacement history.
-4. Runtime fallback may play only another approved asset for the exact same reading and text. It must never synthesize a different or ambiguous reading just to avoid silence.
-5. If no approved asset is available, keep the lesson usable with visible tone-marked pinyin and retry/status messaging, and do not play an unverified sound. Cache approved assets for offline playback where possible.
+1. Store audio against a reviewed reading and context phrase, never only against an ambiguous character.
+2. Have a qualified Mandarin speaker review the exact recording or locally generated candidate against tone contrasts, tone sandhi, neutral tone, and polyphonic words in context before approval.
+3. Store approved audio as a versioned asset. Record the exact text and reading ID, source or model/voice, checkpoint, asset hash, license/terms, reviewer state, and replacement history.
+4. Runtime playback and offline cache may use only approved assets for the exact same reading and text. Do not synthesize a different or ambiguous reading as a fallback.
+5. If no approved asset exists, keep the lesson usable with visible tone-marked Pinyin and “audio not available.” Do not play an unverified sound.
 
-Candidate providers to audition, not yet selected:
+The user has set a zero-paid-service rule. Do not call a cloud TTS or speech API at runtime, do not enable paid Workers AI, and do not silently switch providers when a quota is exhausted. The product should use versioned, approved recordings or locally generated audio assets only when their voice/model, checkpoint, output-use terms, source text, and reviewer approval are recorded. Batch generation on a developer-controlled machine may be evaluated as an optional open-source workflow; it is not a runtime dependency or an automatic quality approval. Device Web Speech synthesis is not an approved pronunciation source because voice and reading can vary by platform. If an exact, reviewed audio asset is unavailable, show Pinyin and “audio not available” instead of playing a guessed voice.
 
-- Google Cloud Text-to-Speech publishes a supported voice list and tiered per-character pricing. Its pricing page says billing must be enabled; free allowances depend on voice family.
-- Azure Speech lists Simplified Mandarin (zh-CN) neural voices such as Xiaoxiao. Its current voice catalog and prices must be checked when selecting a provider.
-- Tencent Cloud Text-to-Speech documents Mandarin support, SSML, and a beta free-use statement. Region availability, service terms, reliability, and actual samples still require verification.
-- Cloudflare Workers AI offers MeloTTS with a listed per-audio-minute price and a shared daily free Neurons allocation. It is a candidate to compare, not an assumed quality fallback.
-- Browser Web Speech synthesis uses device/platform voices and cannot guarantee the same Mandarin voice on every browser or device.
-
-The final primary provider and backup policy depend on a listening review and the accepted operating budget. Do not expose provider credentials in the browser; provider calls, if used, go through a server adapter with limits and monitoring.
+The quality gate is a contextual Mandarin listening review covering tone contrasts, tone sandhi, neutral tone, and polyphonic words. No TTS candidate is selected or certified by this baseline. Free operation is a constraint, not proof of pronunciation quality; audio coverage must grow only as assets pass review.
 
 ## Handwriting recognition scope
 
-Guided stroke practice and freehand recognition are different capabilities. Hanzi Writer provides character animation and guided quiz interactions. Google ML Kit Digital Ink Recognition supports on-device recognition on Android and iOS, but it is a native mobile SDK and does not by itself cover desktop web. MyScript iink 4.5 documents Simplified Chinese and a web SDK, but its web recognition is processed through MyScript Cloud or a separately hosted MyScript Server. Cost, service terms, data handling, and accuracy on learner handwriting must be evaluated. Character recognition alone does not prove correct stroke order, so the app still needs a separate stroke validator. A cross-platform implementation must therefore use a replaceable recognizer/validator design and test real input on Safari/iPadOS, desktop browsers, and phones.
+Guided stroke practice and freehand recognition are different capabilities. Hanzi Writer provides character animation and guided quiz interactions. The user excludes paid recognition services, so MyScript Cloud and other paid APIs are out of scope. Google ML Kit Digital Ink Recognition is a no-cost native SDK option for Android/iOS but does not by itself cover the responsive web app and desktop. A cross-platform offline candidate is [HanziLookupJS](https://github.com/gugray/HanziLookupJS) or its [Rust/WebAssembly port](https://github.com/gugray/hanzi_lookup): both return ranked character candidates from stroke input; the Rust port documents an LGPL code license and Arphic Public License-derived stroke data. The JavaScript project documents GPL code and APL-derived data. These candidates require component-level license notices/compliance and a real device/browser benchmark before selection; the data license is not the same as the application MIT license. Recognition returns candidates, not a guarantee that arbitrary handwriting is correct.
 
-For freehand mode, preserve the user's ordered stroke samples and compare the recognized character and stroke sequence with the selected target. Separate the judgments for character identity, stroke order, direction, and shape. When the recognizer is uncertain, ask for a retry or offer guided practice; do not mark the learner wrong or correct without sufficient confidence. Do not claim that character recognition alone proves correct stroke order.
+Use replaceable `CharacterRecognizer` and `StrokeOrderEvaluator` interfaces. A local/offline recognizer may suggest candidates; a separate guided/deterministic evaluator assesses stroke sequence, direction, and shape. Character recognition alone does not prove correct stroke order. Benchmark real finger and third-party stylus input on Safari/iPadOS 14 or later, desktop browsers, and phones; if confidence is not calibrated, show categorical uncertain/recognized states and abstain instead of pretending to give a precise probability. Preserve the learner's attempt result and recognizer/data version, not raw stroke traces by default. No free universal service has been approved as a cross-platform perfect recognizer; the product must expose uncertainty and keep guided practice usable.
+
+For freehand mode, hold the ordered stroke samples in memory while the current attempt is assessed locally. Compare the recognized character and stroke sequence with the selected target, then persist derived outcomes, timestamps, and recognizer/data version by default; do not retain raw stroke traces without explicit, revocable diagnostic consent. Separate the judgments for character identity, stroke order, direction, and shape. When the recognizer is uncertain, ask for a retry or offer guided practice; do not mark the learner wrong or correct without sufficient confidence. Character recognition alone does not prove correct stroke order.
 
 Prototype and implementation acceptance must include finger and third-party stylus input, missed/extra strokes, different writing sizes, rotation, undo/clear, offline queueing, and uncertain-recognition states. Do not require Apple Pencil-only features.
 
@@ -77,15 +75,12 @@ Create original explanations, examples, and exercises. Before redistributing off
 - The project's [license terms](https://cidict.org/license-terms-of-use/) specify CC BY-SA 4.0, attribution, and ShareAlike for derivative data. Record the downloaded version and provide a visible credits page in the app.
 - No official query API documentation was found during this research. Prefer a versioned import/build pipeline over a runtime dependency on the dictionary website.
 
-### Audio and handwriting services
+### Audio and handwriting references (research only)
 
-- [Google Cloud Text-to-Speech voice catalog](https://docs.cloud.google.com/text-to-speech/docs/list-voices-and-types) and [pricing](https://cloud.google.com/text-to-speech/pricing).
-- [Azure Speech language and voice support](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support) and [pricing](https://azure.microsoft.com/en-us/pricing/details/speech/).
-- [Tencent Cloud TextToVoice API](https://www.tencentcloud.com/document/product/1154/48916).
-- [Cloudflare Workers AI MeloTTS](https://developers.cloudflare.com/workers-ai/models/melotts/) and [Workers AI pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/).
-- [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) documents platform speech synthesis.
-- [ML Kit Digital Ink Recognition](https://developers.google.com/ml-kit/vision/digital-ink-recognition), with [Android](https://developers.google.com/ml-kit/vision/digital-ink-recognition/android) and [iOS](https://developers.google.com/ml-kit/vision/digital-ink-recognition/ios) guides.
-- [MyScript iink 4.5 supported languages](https://developer.myscript.com/docs/interactive-ink/4.5/overview/text-languages/) lists Simplified Chinese; its [web SDK overview](https://developer.myscript.com/docs/interactive-ink/4.5/web/overview/introduction/) says recognition is processed through MyScript Cloud or MyScript Server. Cost, service availability, data terms, and assessment of stroke order need evaluation before any selection.
+- Paid cloud TTS and handwriting endpoints were examined during research but are excluded by the user's zero-paid-service rule. They are not selected providers or fallback options.
+- [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) documents device-dependent browser synthesis; it is not an approved pronunciation source for this product.
+- [ML Kit Digital Ink Recognition](https://developers.google.com/ml-kit/vision/digital-ink-recognition), with [Android](https://developers.google.com/ml-kit/vision/digital-ink-recognition/android) and [iOS](https://developers.google.com/ml-kit/vision/digital-ink-recognition/ios) guides, is a no-cost native SDK option but does not cover the responsive web/desktop app by itself.
+- [HanziLookupJS](https://github.com/gugray/HanziLookupJS) documents a GPL code license and APL-derived data; the [Rust/WebAssembly port](https://github.com/gugray/hanzi_lookup) documents LGPL code and APL-derived data. Treat code and recognition data licenses separately and include required notices if selected.
 
 ### Cloudflare hosting candidates
 
@@ -99,15 +94,18 @@ Use Cloudflare Pages for the web shell, Workers for versioned API endpoints, D1 
 ## Account and administrator privacy
 
 - The server is the canonical account/progress store. IndexedDB/service-worker caches support downloaded lessons and a retryable outbox for offline attempts; show sync status and last successful sync.
-- Restrict administrator routes and operations to an explicit admin role with audited access.
+- Restrict administrator routes and operations to explicit server-enforced roles with audited access. Authorized administrators can inspect one learner's curriculum progress, separate skill trends, due reviews, and attempt outcomes.
+- Record every opening of an individual learner profile in an append-only audit trail with administrator, learner ID, time, and action. Use pseudonymous admin lists and masked contact details by default.
 - Default analytics to aggregate usage and product-quality measures: active accounts, completed practice, curriculum progress, sync failures, audio fallback/error rate, and handwriting uncertainty/error rate.
-- Do not expose raw microphone audio or raw handwriting strokes in routine admin analytics. Collect any diagnostic samples only with explicit consent, a retention limit, and access logging.
+- Do not retain or expose raw microphone audio or raw handwriting strokes in routine admin views. Collect a diagnostic sample only with explicit, revocable consent, a stated purpose, short retention, and audited access; offer export/deletion workflows for account data.
+- Show free-tier operational usage and use fixed safety thresholds. On quota risk or exhaustion, stop or rate-limit the relevant nonessential operation and alert the admin; never auto-upgrade or invoke a paid fallback.
 
-## Open decisions before public GitHub publication
+## Decisions and remaining questions
 
-- Repository owner/name.
-- Software source license (keep separate from external dataset and audio licenses).
-- Whether a paid primary/backup speech provider is acceptable and the monthly usage ceiling.
-- Exact HSK 3.0 import/reuse terms and editorial review process.
-- Account authentication choice and whether open registration is enabled.
-- Admin analytics retention and whether per-account activity is needed beyond aggregated metrics.
+- Settled: repository name `MandarinLearnApp`; application-code license MIT; no paid service budget; individual learner progress is visible to authorized admins and profile views are audited.
+- Confirm the GitHub repository owner/account and authenticated publishing route before the first public push. Keep private Git identity information out of published commits.
+- Confirm HSK 3.0 list redistribution terms and content editorial review. Do not assume the official test page grants bulk redistribution rights.
+- Choose account authentication and decide whether registration is open from day one.
+- Set retention periods for attempt summaries, audit logs, and any consented diagnostic sample.
+- Benchmark HanziLookupJS/Rust-WASM and the separate stroke evaluator on the target iPad and representative phones; finish license notices for each code/data component before bundling them.
+- Approve an audio-source process (for example, appropriately licensed native-speaker recordings or quality-reviewed assets generated locally from a license-verified open model). Do not enable a paid or unreviewed runtime TTS fallback.

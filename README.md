@@ -9,6 +9,7 @@ This repository is in the product-design stage. The current deliverable is a Goo
 ## Design documents
 
 - [Google Stitch prototype prompt](docs/stitch-prototype-prompt.md)
+- [Administrator portal Stitch prompt](docs/admin-stitch-prompt.md)
 - [Research and architecture baseline](docs/research-and-architecture-baseline.md)
 
 ## Platforms
@@ -17,4 +18,10 @@ The product is planned as a responsive web app for desktop, phone, and iPad, wit
 
 ## Sources and licensing
 
-The repository is intended to be public. The software license still needs to be selected. Dictionary, stroke-order, and audio resources have separate source-specific terms; no third-party dataset or generated audio is included in this design-stage repository. Before publication, each imported asset must have a recorded source, version, license, attribution, and review status.
+The application source code is licensed under the MIT License; see [LICENSE](LICENSE). Dictionary, stroke-order, fonts, voice models, and audio resources keep their own source-specific terms. No third-party dataset or audio is included in this design-stage repository. Before importing or publishing any asset, record its source, version, license, attribution, checksum, and review status in the project credits/provenance records.
+
+The product has a zero-paid-service requirement. It is planned around free-tier hosting and locally generated or appropriately licensed, human-reviewed audio assets. If free quotas are exhausted, the app must degrade safely or pause the affected operation; it must not silently switch to a paid service or upgrade.
+
+## Administrator portal
+
+The protected admin experience includes aggregate service/content health and audited access to an individual learner's progress. Routine admin views show learning results and attempt metadata, not raw handwriting or microphone recordings. See the dedicated [admin Stitch prompt](docs/admin-stitch-prompt.md).
