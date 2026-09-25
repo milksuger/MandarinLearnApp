@@ -11,8 +11,8 @@ type SessionUser = NonNullable<SessionResult["data"]>["user"];
 type UserProfile = { display_name: string; email: string; locale: string; daily_goal_minutes: number; roles?: string[] };
 type Metrics = { learned_items: number; attempts: number; correct: number; streak_days: number };
 type Unit = { id: string; title: string; description: string | null; curriculum_name: string };
-type UnitItem = { placement_id: string; vocabulary_id: string | null; simplified_form: string | null; character_id: string | null; hanzi: string | null; stroke_count: number | null; reading_id: string | null; pinyin_json: string | null; numbered_pinyin: string | null; gloss: string | null; audio_id: string | null; duration_ms: number | null; example_text: string | null; example_pinyin: string | null; example_translation: string | null };
-type LessonActivity = { id: string; activityKind: string; title: string; objective: string; instructions: string; ordinal: number; state: "not_started" | "in_progress" | "completed"; currentItemOrdinal: number };
+type UnitItem = { placement_id: string; vocabulary_id: string | null; simplified_form: string | null; character_id: string | null; hanzi: string | null; stroke_count: number | null; stroke_data_status: string | null; reading_id: string | null; pinyin_json: string | null; numbered_pinyin: string | null; gloss: string | null; audio_id: string | null; duration_ms: number | null; example_text: string | null; example_pinyin: string | null; example_translation: string | null };
+type LessonActivity = { id: string; activityKind: string; title: string; objective: string; instructions: string; ordinal: number; state: "not_started" | "in_progress" | "completed"; currentItemOrdinal: number; correctCount: number; completedCharacterIds: string[] };
 type LessonExtras = {
   grammar: Array<{ id: string; title: string; pattern: string; explanation: string; usageNotes: string }>;
   dialogueTurns: Array<{ id: string; speakerRole: string; speakerLabel: string; simplifiedText: string; pinyinJson: string; translation: string; dialogueTitle: string }>;
@@ -461,30 +461,46 @@ function LessonPage() {
   const [scenarioLoading, setScenarioLoading] = useState(false);
   const [scenarioSaving, setScenarioSaving] = useState(false);
   const [scenarioNotice, setScenarioNotice] = useState("");
+  const [progressNotice, setProgressNotice] = useState("");
   const { data: currentSession } = useLearnerSession();
   useEffect(() => {
     setUnit(null); setItems([]); setActivities([]); setLessonExtras({ grammar: [], dialogueTurns: [], storyParagraphs: [] });
     void api<{ unit: Unit; items: UnitItem[]; activities: LessonActivity[] } & LessonExtras>(`/units/${encodeURIComponent(unitId)}`).then((data) => {
       setUnit(data.unit); setItems(data.items); setActivities(data.activities);
       setLessonExtras({ grammar: data.grammar ?? [], dialogueTurns: data.dialogueTurns ?? [], storyParagraphs: data.storyParagraphs ?? [] });
-      const saved = data.activities.find((activity) => activity.id === requestedActivityId && activity.state !== "completed")
-        ?? data.activities.find((activity) => activity.state === "in_progress");
-      if (saved) {
-        setPhase(saved.ordinal); setHighestPhase(saved.ordinal); setQuestionIndex(saved.currentItemOrdinal); setSelectedAnswer(null);
+      const orderedActivities = [...data.activities].sort((a, b) => a.ordinal - b.ordinal);
+      const requested = orderedActivities.find((activity) => activity.id === requestedActivityId);
+      const inProgress = orderedActivities.find((activity) => activity.state === "in_progress");
+      const firstIncomplete = orderedActivities.find((activity) => activity.state !== "completed");
+      const lastActivity = orderedActivities.at(-1);
+      let unlockedThrough = 0;
+      for (const activity of orderedActivities) {
+        if (activity.state !== "completed") break;
+        unlockedThrough = activity.ordinal + 1;
       }
+      const requestedIsAvailable = requested && requested.state !== "completed" && requested.ordinal <= unlockedThrough;
+      const resume = (requestedIsAvailable ? requested : undefined) ?? inProgress ?? firstIncomplete ?? lastActivity;
+      const maximumPhase = Math.max(0, (lastActivity?.ordinal ?? 0));
+      const startPhase = Math.min(resume?.ordinal ?? 0, maximumPhase);
+      setPhase(startPhase); setHighestPhase(Math.max(Math.min(unlockedThrough, maximumPhase), startPhase));
+      setQuestionIndex(resume?.activityKind === "comprehension" && resume.state === "completed"
+        ? data.items.filter((item) => item.vocabulary_id && item.gloss).length
+        : resume?.currentItemOrdinal ?? 0);
+      setScore(resume?.correctCount ?? 0);
+      setSelectedAnswer(null); setProgressNotice("");
     }).catch(() => { setUnit(null); setItems([]); setActivities([]); });
   }, [unitId, requestedActivityId]);
-  useEffect(() => { setPhase(0); setHighestPhase(0); setQuestionIndex(0); setSelectedAnswer(null); setScore(0); setWritingCharacters({}); }, [unitId]);
+  useEffect(() => { setPhase(0); setHighestPhase(0); setQuestionIndex(0); setSelectedAnswer(null); setScore(0); setWritingCharacters({}); setScenarioDraft(""); setScenarioSaved(false); setScenarioSelfAssessment("unsure"); setProgressNotice(""); }, [unitId]);
   useEffect(() => {
     if (phase !== 2 || items.length === 0 || items.every((item) => item.placement_id in writingCharacters)) return;
     let active = true;
     setLoadingCharacters(true);
     void Promise.all(items.map(async (item) => {
-      if (item.character_id && item.hanzi) return [item.placement_id, [{ id: item.character_id, hanzi: item.hanzi, strokeCount: item.stroke_count ?? 0, strokeDataStatus: "available" }]] as const;
+      if (item.character_id && item.hanzi) return [item.placement_id, item.stroke_data_status === "approved" ? [{ id: item.character_id, hanzi: item.hanzi, strokeCount: item.stroke_count ?? 0, strokeDataStatus: item.stroke_data_status }] : []] as const;
       if (!item.vocabulary_id) return [item.placement_id, []] as const;
       try {
         const data = await api<{ characters: Array<{ id: string; hanzi: string; strokeCount: number; strokeDataStatus: string }> }>(`/vocabulary/${encodeURIComponent(item.vocabulary_id)}`);
-        return [item.placement_id, data.characters] as const;
+        return [item.placement_id, data.characters.filter((character) => character.strokeDataStatus === "approved")] as const;
       } catch { return [item.placement_id, []] as const; }
     })).then((entries) => { if (active) setWritingCharacters(Object.fromEntries(entries)); })
       .finally(() => { if (active) setLoadingCharacters(false); });
@@ -495,14 +511,20 @@ function LessonPage() {
   const distractors = activeQuestion ? [...new Set(quizItems.filter((item) => item.placement_id !== activeQuestion.placement_id).map((item) => item.gloss).filter((gloss): gloss is string => Boolean(gloss) && gloss !== activeQuestion.gloss))].slice(0, 3) : [];
   const answerSlot = activeQuestion ? questionIndex % Math.min(4, distractors.length + 1) : 0;
   const answerOptions = activeQuestion ? [...distractors.slice(0, answerSlot), activeQuestion.gloss!, ...distractors.slice(answerSlot, answerSlot + 3 - answerSlot)] : [];
-  const persistActivityProgress = (activity: LessonActivity, state: "in_progress" | "completed", currentItemOrdinal = 0) => {
-    return api(`/activities/${encodeURIComponent(activity.id)}/progress`, { method: "POST", body: JSON.stringify({ state, currentItemOrdinal }) }).then(() => true).catch(() => false);
+  const persistActivityProgress = async (activity: LessonActivity, state: "in_progress" | "completed", currentItemOrdinal = 0, correctCount = score) => {
+    try {
+      const saved = await api<{ state: LessonActivity["state"]; currentItemOrdinal: number; correctCount: number }>(`/activities/${encodeURIComponent(activity.id)}/progress`, { method: "POST", body: JSON.stringify({ state, currentItemOrdinal, correctCount }) });
+      setActivities((current) => current.map((item) => item.id === activity.id
+        ? { ...item, state: saved.state, currentItemOrdinal: saved.currentItemOrdinal, correctCount: saved.correctCount }
+        : item));
+      return true;
+    } catch { return false; }
   };
   const currentActivity = activities.find((activity) => activity.ordinal === phase);
   const scenarioActivity = activities.find((activity) => activity.activityKind === "scenario_output");
   useEffect(() => {
-    if (currentActivity && currentActivity.activityKind !== "scenario_output" && currentActivity.state !== "completed") persistActivityProgress(currentActivity, "in_progress", phase === 3 ? questionIndex : 0);
-  }, [currentActivity?.id, currentActivity?.state, phase, questionIndex]);
+    if (currentActivity && phase !== 3 && currentActivity.activityKind !== "scenario_output" && currentActivity.state !== "completed") persistActivityProgress(currentActivity, "in_progress", 0);
+  }, [currentActivity?.id, currentActivity?.state, phase]);
   useEffect(() => {
     if (phase !== 4 || !scenarioActivity) return;
     let active = true;
@@ -513,17 +535,30 @@ function LessonPage() {
       .finally(() => { if (active) setScenarioLoading(false); });
     return () => { active = false; };
   }, [phase, scenarioActivity?.id]);
-  useEffect(() => {
-    if (phase === 3 && activeQuestion === undefined && quizItems.length > 0 && currentActivity) persistActivityProgress(currentActivity, "completed", Math.max(0, quizItems.length - 1));
-  }, [phase, activeQuestion, quizItems.length, currentActivity?.id]);
   const [savingProgress, setSavingProgress] = useState(false);
   const advanceTo = async (nextPhase: number) => {
-    setSavingProgress(true);
-    if (currentActivity) {
-      const saved = await persistActivityProgress(currentActivity, "completed", phase === 3 ? Math.max(0, questionIndex - 1) : 0);
-      if (!saved) { setSavingProgress(false); return; }
+    if (savingProgress) return;
+    setSavingProgress(true); setProgressNotice("");
+    if (currentActivity && !await persistActivityProgress(currentActivity, "completed", phase === 3 ? Math.max(0, questionIndex - 1) : 0, score)) {
+      setProgressNotice("Kemajuan belum tersimpan. Periksa koneksi lalu tekan tombol lanjut lagi."); setSavingProgress(false); return;
+    }
+    const nextActivity = activities.find((activity) => activity.ordinal === nextPhase);
+    if (nextActivity && nextActivity.state !== "completed" && !await persistActivityProgress(nextActivity, "in_progress", nextActivity.currentItemOrdinal, nextActivity.correctCount)) {
+      setProgressNotice("Langkah berikutnya belum siap dibuka karena kemajuan belum tersimpan. Coba lagi."); setSavingProgress(false); return;
     }
     setHighestPhase((value) => Math.max(value, nextPhase)); setPhase(nextPhase); setSavingProgress(false);
+  };
+  const moveToPhase = async (nextPhase: number) => {
+    if (savingProgress || nextPhase === phase) return;
+    setSavingProgress(true); setProgressNotice("");
+    if (currentActivity && currentActivity.state !== "completed" && !await persistActivityProgress(currentActivity, "in_progress", phase === 3 ? questionIndex : 0)) {
+      setProgressNotice("Kemajuan belum tersimpan. Periksa koneksi lalu coba lagi."); setSavingProgress(false); return;
+    }
+    const destination = activities.find((activity) => activity.ordinal === nextPhase);
+    if (destination && destination.state !== "completed" && !await persistActivityProgress(destination, "in_progress", destination.currentItemOrdinal, destination.correctCount)) {
+      setProgressNotice("Langkah belum dapat dibuka karena kemajuan belum tersimpan. Coba lagi."); setSavingProgress(false); return;
+    }
+    setPhase(nextPhase); setSavingProgress(false);
   };
   const recordMeaningAttempt = (answer: string) => {
     if (!activeQuestion?.vocabulary_id || !currentSession?.user.id || selectedAnswer !== null) return;
@@ -534,33 +569,52 @@ function LessonPage() {
       curriculumPlacementId: activeQuestion.placement_id, activityId: activities.find((activity) => activity.activityKind === "comprehension")?.id,
       skill: "comprehension", activityMode: "meaning", dimensions: { meaningRecall: correct ? "correct" : "needs_practice" }, engineVersion: "lesson-recall-v1" }, currentSession.user.id).catch(() => undefined);
   };
+  const continueQuiz = async () => {
+    if (!currentActivity || !activeQuestion || selectedAnswer === null || savingProgress) return;
+    const nextIndex = questionIndex + 1;
+    const nextScore = score;
+    setSavingProgress(true); setProgressNotice("");
+    const saved = await persistActivityProgress(currentActivity, nextIndex >= quizItems.length ? "completed" : "in_progress", Math.min(nextIndex, Math.max(0, quizItems.length - 1)), nextScore);
+    if (!saved) { setProgressNotice("Kemajuan belum tersimpan. Periksa koneksi lalu coba lagi."); setSavingProgress(false); return; }
+    setScore(nextScore); setQuestionIndex(nextIndex); setSelectedAnswer(null); setSavingProgress(false);
+  };
   const saveScenarioResponse = async () => {
     if (!scenarioActivity || !scenarioDraft.trim()) { setScenarioNotice("Tulis setidaknya satu kalimat pendek sebelum menyimpan."); return; }
     setScenarioSaving(true); setScenarioNotice("");
     try {
       await api(`/scenario-responses/${encodeURIComponent(scenarioActivity.id)}`, { method: "POST", body: JSON.stringify({ responseText: scenarioDraft, selfAssessment: scenarioSelfAssessment }) });
+      setActivities((current) => current.map((activity) => activity.id === scenarioActivity.id ? { ...activity, state: "completed" } : activity));
       setScenarioSaved(true); setHighestPhase((value) => Math.max(value, 4));
       setScenarioNotice("Jawaban tersimpan di akunmu. Aplikasi tidak mengirimkannya ke AI atau memberi nilai otomatis.");
     } catch (cause) { setScenarioNotice(cause instanceof Error ? cause.message : "Jawaban belum tersimpan. Coba lagi setelah koneksi pulih."); }
     finally { setScenarioSaving(false); }
   };
   const phases = activities.length ? activities.map((activity) => activity.title) : ["Kenali kata", "Pahami contoh", "Belajar menulis", "Uji ingatan", "Gunakan kalimat"];
+  const writingActivity = activities.find((activity) => activity.activityKind === "writing");
+  const writingCharactersReady = items.length > 0 && items.every((item) => item.placement_id in writingCharacters);
+  const writingCharacterIds = [...new Set(Object.values(writingCharacters).flat().map((character) => character.id))];
+  const completedWritingCharacterIds = new Set(writingActivity?.completedCharacterIds ?? []);
+  const writingPracticeComplete = writingCharacterIds.length > 0 && writingCharacterIds.every((id) => completedWritingCharacterIds.has(id));
   return <Protected><div className="page-wrap"><PageBack to="/paths" label="Semua jalur" /><PageTitle eyebrow={unit?.curriculum_name ?? "PELAJARAN"} title={unit?.title ?? "Pelajaran"} subtitle={unit?.description ?? "Ikuti langkahnya berurutan: kenali kata, pahami contoh, berlatih menulis, ulangi, lalu gunakan dalam kalimatmu."} />
     {items.length ? <>
-      <div className="lesson-stepper" role="group" aria-label="Langkah pelajaran">{phases.map((label, index) => <button key={activities[index]?.id ?? label} type="button" className={`lesson-step ${phase === index ? "lesson-step-active" : ""} ${activities[index]?.state === "completed" || phase > index ? "lesson-step-done" : ""}`} aria-current={phase === index ? "step" : undefined} disabled={savingProgress || index > highestPhase} onClick={async () => { setSavingProgress(true); if (currentActivity) await persistActivityProgress(currentActivity, "in_progress", phase === 3 ? questionIndex : 0); setPhase(index); setSavingProgress(false); }}><span>{activities[index]?.state === "completed" || phase > index ? <Check size={14} /> : index + 1}</span>{label}</button>)}</div>
+      <div className={`lesson-stepper lesson-stepper-${phases.length}`} role="group" aria-label="Langkah pelajaran">{phases.map((label, index) => <button key={activities[index]?.id ?? label} type="button" className={`lesson-step ${phase === index ? "lesson-step-active" : ""} ${activities[index]?.state === "completed" || phase > index ? "lesson-step-done" : ""} ${index > highestPhase ? "lesson-step-locked" : ""}`} aria-current={phase === index ? "step" : undefined} title={index > highestPhase ? "Selesaikan langkah saat ini untuk membuka bagian ini." : label} disabled={savingProgress || index > highestPhase} onClick={() => void moveToPhase(index)}><span>{activities[index]?.state === "completed" || phase > index ? <Check size={14} /> : index + 1}</span>{label}</button>)}</div>
+      <div className="lesson-step-caption"><strong>Langkah {phase + 1} dari {phases.length}</strong><span>{phase < phases.length - 1 ? "Selesaikan bagian ini lalu tekan tombol lanjut untuk membuka langkah berikutnya." : "Selesaikan latihan terakhir untuk menutup pelajaran."}</span></div>
       <div className="lesson-progress-track" aria-label={`Langkah ${phase + 1} dari ${phases.length}`}><span style={{ width: `${((phase + 1) / phases.length) * 100}%` }} /></div>
+      {progressNotice && <InlineNotice tone="danger">{progressNotice}</InlineNotice>}
       {phase === 0 && <section className="lesson-stage"><div className="lesson-stage-heading"><span className="tag">LANGKAH 1 · KENALI</span><h2>Kata yang akan kamu pelajari</h2><p>Dengarkan rekaman jika tersedia, baca pinyin, lalu buka detail untuk melihat penggunaan dan contoh.</p></div><div className="lesson-items">{items.map((item) => {
         const context = new URLSearchParams({ placementId: item.placement_id, unitId });
         const to = item.vocabulary_id ? `/word/${item.vocabulary_id}?${context}` : `/write/${item.character_id}?${context}`;
         return <article className="vocab-row lesson-vocab-row" key={item.placement_id}><span className="hanzi-thumb">{item.simplified_form ?? item.hanzi}</span><div><strong>{item.simplified_form ?? item.hanzi}</strong><small>{item.numbered_pinyin ?? "Pengucapan sedang ditinjau"} · {item.gloss ?? "Arti sedang ditinjau"}</small></div><AudioButton assetId={item.audio_id} text={item.simplified_form ?? item.hanzi ?? ""} /><Link className="icon-button" to={to} aria-label="Lihat detail kata dan contoh"><ChevronRight /></Link></article>;
-      })}</div><button className="button button-primary lesson-next" onClick={() => advanceTo(1)}>Lanjut ke contoh <ArrowRight /></button></section>}
+      })}</div><button className="button button-primary lesson-next" disabled={savingProgress} onClick={() => void advanceTo(1)}>{savingProgress ? "Menyimpan kemajuan…" : "Lanjut ke contoh"} <ArrowRight /></button></section>}
       {phase === 1 && <section className="lesson-stage"><div className="lesson-stage-heading"><span className="tag">LANGKAH 2 · GUNAKAN</span><h2>Lihat kata dalam kalimat</h2><p>Perhatikan polanya, ikuti percakapan, lalu baca contoh singkat. Pinyin dan arti ditampilkan bersama agar mudah dipahami.</p></div>{lessonExtras.grammar.length > 0 && <div className="scenario-section"><h3>Pola kalimat</h3>{lessonExtras.grammar.map((grammar) => <article className="grammar-card" key={grammar.id}><span className="tag">TATA BAHASA</span><h4>{grammar.title}</h4><strong lang="zh-Hans">{grammar.pattern}</strong><p>{grammar.explanation}</p>{grammar.usageNotes && <small>{grammar.usageNotes}</small>}</article>)}</div>}{items.some((item) => item.example_text) && <div className="lesson-examples">{items.filter((item) => item.example_text).map((item) => <article className="lesson-example-card" key={item.placement_id}><div className="lesson-example-context"><span className="hanzi-thumb">{item.simplified_form ?? item.hanzi}</span><span>{item.gloss}</span></div><strong lang="zh-Hans">{item.example_text}</strong>{item.example_pinyin && <small>{item.example_pinyin}</small>}{item.example_translation && <p>{item.example_translation}</p>}</article>)}</div>}{lessonExtras.dialogueTurns.length > 0 && <div className="scenario-section"><h3>{lessonExtras.dialogueTurns[0].dialogueTitle}</h3><div className="dialogue-list">{lessonExtras.dialogueTurns.map((turn) => <article className={`dialogue-turn dialogue-turn-${turn.speakerRole.toLowerCase()}`} key={turn.id}><div><span className="dialogue-speaker">{turn.speakerLabel}</span><strong lang="zh-Hans">{turn.simplifiedText}</strong><small>{formatPinyinJson(turn.pinyinJson)}</small><p>{turn.translation}</p><small className="device-audio-note">Suara Mandarin perangkat · hanya untuk latihan mendengar</small></div><AudioButton text={turn.simplifiedText} /></article>)}</div></div>}{lessonExtras.storyParagraphs.length > 0 && <div className="scenario-section"><h3>{lessonExtras.storyParagraphs[0].storyTitle}</h3>{lessonExtras.storyParagraphs.map((paragraph) => <article className="story-paragraph" key={paragraph.id}><strong lang="zh-Hans">{paragraph.simplifiedText}</strong><small>{formatPinyinJson(paragraph.pinyinJson)}</small><p>{paragraph.translation}</p><AudioButton text={paragraph.simplifiedText} /></article>)}</div>}{!items.some((item) => item.example_text) && lessonExtras.grammar.length === 0 && lessonExtras.dialogueTurns.length === 0 && lessonExtras.storyParagraphs.length === 0 && <div className="empty-card lesson-empty"><div className="empty-icon"><BookOpen /></div><h3>Contoh kalimat belum tersedia</h3><p>Pelajari dulu makna kata, lalu lanjutkan ke latihan menulis dan pengulangan.</p></div>}<button className="button button-primary lesson-next" disabled={savingProgress} onClick={() => void advanceTo(2)}>{savingProgress ? "Menyimpan kemajuan…" : "Lanjut ke tulisan"} <ArrowRight /></button></section>}
-      {phase === 2 && <section className="lesson-stage"><div className="lesson-stage-heading"><span className="tag">LANGKAH 3 · TULIS</span><h2>Ikuti urutan guratan</h2><p>Buka karakter untuk melihat tutorial lengkap, lalu tulis dengan sentuhan atau stylus. Data guratan yang tidak tersedia tidak akan diganti dengan tebakan.</p></div>{loadingCharacters ? <div className="empty-card lesson-empty"><div className="loader" /><p>Memuat karakter dalam pelajaran…</p></div> : <div className="lesson-character-grid">{items.flatMap((item) => (writingCharacters[item.placement_id] ?? []).map((character) => {
+      {phase === 2 && <section className="lesson-stage"><div className="lesson-stage-heading"><span className="tag">LANGKAH 3 · TULIS</span><h2>Ikuti urutan guratan</h2><p>Buka setiap karakter yang tersedia, putar tutorial lengkap, lalu tulis dengan sentuhan atau stylus. Setiap karakter latihan akan dicentang dan disimpan di akunmu. Data guratan yang belum disetujui tidak akan ditampilkan.</p></div>{currentActivity?.state === "completed" && <InlineNotice>Semua karakter yang tersedia sudah tercatat. Kamu dapat mengulang karakter atau lanjut ke latihan ingatan.</InlineNotice>}{loadingCharacters || !writingCharactersReady ? <div className="empty-card lesson-empty"><div className="loader" /><p>Memuat karakter dalam pelajaran…</p></div> : <div className="lesson-character-grid">{items.flatMap((item) => (writingCharacters[item.placement_id] ?? []).map((character) => {
         const context = new URLSearchParams({ placementId: item.placement_id, unitId });
-        return <Link className="lesson-character-card" key={`${item.placement_id}-${character.id}`} to={`/write/${character.id}?${context}`}><span>{character.hanzi}</span><small>{item.simplified_form ?? item.hanzi} · mulai menulis</small><strong>Ikuti urutan <ChevronRight size={15} /></strong></Link>;
-      }))}{!loadingCharacters && !items.some((item) => (writingCharacters[item.placement_id] ?? []).length) && <div className="empty-card lesson-empty"><div className="empty-icon"><BookOpen /></div><h3>Karakter belum tersedia</h3><p>Kamu bisa lanjut ke latihan ingatan sambil materi guratan ditambahkan.</p></div>}</div>}<button className="button button-primary lesson-next" onClick={() => { setQuestionIndex(0); setSelectedAnswer(null); setScore(0); advanceTo(3); }}>Lanjut ke latihan <ArrowRight /></button></section>}
-      {phase === 3 && <section className="lesson-stage"><div className="lesson-stage-heading"><span className="tag">LANGKAH 4 · ULANGI</span><h2>Ingat arti katanya</h2><p>Pilih arti bahasa Indonesia. Hasil latihan tersimpan di akun dan membantu menentukan materi untuk diulang.</p></div>{quizItems.length < 2 || new Set(quizItems.map((item) => item.gloss)).size < 2 ? <div className="empty-card lesson-empty"><div className="empty-icon"><BookOpen /></div><h3>Latihan pilihan belum tersedia</h3><p>Pelajaran perlu sedikitnya dua arti kata yang berbeda dan sudah diperiksa.</p>{scenarioActivity && <button className="button button-primary" onClick={() => void advanceTo(4)}>Coba tulis kalimatmu <ArrowRight /></button>}</div> : questionIndex >= quizItems.length ? <div className="lesson-result"><div className="lesson-result-mark"><Check /></div><span className="tag">PELAJARAN SELESAI</span><h2>Bagus, kamu sudah menyelesaikan latihan ini.</h2><p>Jawaban tepat: <strong>{score} dari {quizItems.length}</strong>. Materi yang perlu diulang akan muncul pada bagian Ulangi.</p><div className="lesson-result-actions"><button className="button button-soft" onClick={() => { setQuestionIndex(0); setSelectedAnswer(null); setScore(0); }}>Ulangi latihan</button>{scenarioActivity ? <button className="button button-primary" onClick={() => void advanceTo(4)}>Sekarang tulis kalimatmu <ArrowRight /></button> : <Link className="button button-primary" to="/paths">Pilih pelajaran lain <ArrowRight /></Link>}</div></div> : activeQuestion ? <div className="lesson-quiz-card"><div className="lesson-quiz-count">KATA {questionIndex + 1} DARI {quizItems.length}</div><div className="lesson-quiz-hanzi" lang="zh-Hans">{activeQuestion.simplified_form ?? activeQuestion.hanzi}</div><p>{activeQuestion.numbered_pinyin ?? "Baca pinyinnya"}</p><AudioButton assetId={activeQuestion.audio_id} text={activeQuestion.simplified_form ?? activeQuestion.hanzi ?? ""} prominent /><h3>Apa artinya dalam bahasa Indonesia?</h3><div className="lesson-answer-list">{answerOptions.map((option, index) => <button key={`${questionIndex}-${index}`} className={`lesson-answer ${selectedAnswer === option ? (option === activeQuestion.gloss ? "answer-correct" : "answer-wrong") : ""}`} disabled={selectedAnswer !== null} onClick={() => recordMeaningAttempt(option)}>{option}{selectedAnswer === option && (option === activeQuestion.gloss ? <Check size={17} /> : <X size={17} />)}</button>)}</div>{selectedAnswer !== null && <><p className={`lesson-answer-feedback ${selectedAnswer === activeQuestion.gloss ? "" : "answer-feedback-wrong"}`} aria-live="polite">{selectedAnswer === activeQuestion.gloss ? "Benar!" : `Belum tepat. Artinya: ${activeQuestion.gloss}.`}</p><button className="button button-primary lesson-next" onClick={() => { setQuestionIndex((value) => value + 1); setSelectedAnswer(null); }}>{questionIndex + 1 === quizItems.length ? "Lihat hasil" : "Berikutnya"} <ArrowRight /></button></>}</div> : null}</section>}
-      {phase === 4 && scenarioActivity && <section className="lesson-stage"><div className="lesson-stage-heading"><span className="tag">LANGKAH 5 · GUNAKAN</span><h2>{scenarioActivity.title}</h2><p>{scenarioActivity.objective}</p></div><div className="scenario-writing-card"><p>{scenarioActivity.instructions}</p>{scenarioLoading ? <div className="loader" /> : <><label htmlFor="scenario-response">Kalimat Mandarinmu<textarea id="scenario-response" rows={4} maxLength={1200} value={scenarioDraft} onChange={(event) => { setScenarioDraft(event.target.value); setScenarioSaved(false); }} placeholder="Tulis kalimat di sini…" /></label><div className="scenario-response-meta"><span>{scenarioDraft.length}/1200</span><span>Jawaban tersimpan dengan akunmu; tidak dikirim ke AI.</span></div><fieldset><legend>Bagaimana perasaanmu tentang jawabanmu?</legend><label><input type="radio" name="scenario-confidence" checked={scenarioSelfAssessment === "confident"} onChange={() => { setScenarioSelfAssessment("confident"); setScenarioSaved(false); }} /> Cukup yakin</label><label><input type="radio" name="scenario-confidence" checked={scenarioSelfAssessment === "repeat"} onChange={() => { setScenarioSelfAssessment("repeat"); setScenarioSaved(false); }} /> Ingin berlatih lagi</label><label><input type="radio" name="scenario-confidence" checked={scenarioSelfAssessment === "unsure"} onChange={() => { setScenarioSelfAssessment("unsure"); setScenarioSaved(false); }} /> Belum yakin</label></fieldset><button className="button button-primary" disabled={scenarioSaving || !scenarioDraft.trim()} onClick={() => void saveScenarioResponse()}>{scenarioSaving ? "Menyimpan…" : scenarioSaved ? "Perbarui jawaban" : "Simpan jawaban"} <Check /></button></>}{scenarioNotice && <InlineNotice>{scenarioNotice}</InlineNotice>}</div>{scenarioSaved && <div className="lesson-result-actions"><Link className="button button-soft" to="/paths">Pilih pelajaran lain <ArrowRight /></Link></div>}</section>}
+        if (currentActivity) context.set("activityId", currentActivity.id);
+        const done = completedWritingCharacterIds.has(character.id);
+        return <Link className={`lesson-character-card ${done ? "lesson-character-done" : ""}`} key={`${item.placement_id}-${character.id}`} to={`/write/${character.id}?${context}`}><span>{character.hanzi}</span><small>{item.simplified_form ?? item.hanzi} · {done ? "latihan selesai" : "mulai menulis"}</small><strong>{done ? <><Check size={15} /> Latihan selesai</> : <>Ikuti urutan <ChevronRight size={15} /></>}</strong></Link>;
+      }))}{writingCharactersReady && !items.some((item) => (writingCharacters[item.placement_id] ?? []).length) && <div className="empty-card lesson-empty"><div className="empty-icon"><BookOpen /></div><h3>Karakter belum tersedia</h3><p>Karakter tanpa data guratan yang disetujui tidak ditampilkan dalam latihan; kamu dapat melewati langkah ini.</p></div>}</div>}<button className="button button-primary lesson-next" disabled={savingProgress || loadingCharacters || !writingCharactersReady || (writingCharacterIds.length > 0 && !writingPracticeComplete)} onClick={() => void advanceTo(3)}>{savingProgress ? "Menyimpan kemajuan…" : writingCharacterIds.length > 0 ? writingPracticeComplete ? "Lanjut ke latihan ingatan" : `Selesaikan semua karakter (${completedWritingCharacterIds.size}/${writingCharacterIds.length})` : "Lewati latihan menulis"} <ArrowRight /></button></section>}
+      {phase === 3 && <section className="lesson-stage"><div className="lesson-stage-heading"><span className="tag">LANGKAH 4 · ULANGI</span><h2>Ingat arti katanya</h2><p>Pilih arti bahasa Indonesia. Setelah tiap jawaban, kemajuan dan nilai tersimpan di akun agar bisa dilanjutkan di perangkat lain.</p></div>{quizItems.length < 2 || new Set(quizItems.map((item) => item.gloss)).size < 2 ? <div className="empty-card lesson-empty"><div className="empty-icon"><BookOpen /></div><h3>Latihan pilihan belum tersedia</h3><p>Pelajaran perlu sedikitnya dua arti kata yang berbeda dan sudah diperiksa.</p>{scenarioActivity && <button className="button button-primary" onClick={() => void advanceTo(4)}>Coba tulis kalimatmu <ArrowRight /></button>}</div> : questionIndex >= quizItems.length ? <div className="lesson-result"><div className="lesson-result-mark"><Check /></div><span className="tag">LATIHAN SELESAI</span><h2>Bagus, kamu sudah menyelesaikan latihan ini.</h2><p>Jawaban tepat: <strong>{score} dari {quizItems.length}</strong>. Materi yang perlu diulang akan muncul pada bagian Ulangi.</p><div className="lesson-result-actions"><button className="button button-soft" onClick={() => { setQuestionIndex(0); setSelectedAnswer(null); setScore(0); }}>Ulangi latihan</button>{scenarioActivity ? <button className="button button-primary" onClick={() => void advanceTo(4)}>Sekarang tulis kalimatmu <ArrowRight /></button> : <Link className="button button-primary" to="/paths">Pilih pelajaran lain <ArrowRight /></Link>}</div></div> : activeQuestion ? <div className="lesson-quiz-card"><div className="lesson-quiz-count">KATA {questionIndex + 1} DARI {quizItems.length}</div><div className="lesson-quiz-hanzi" lang="zh-Hans">{activeQuestion.simplified_form ?? activeQuestion.hanzi}</div><p>{activeQuestion.numbered_pinyin ?? "Baca pinyinnya"}</p><AudioButton assetId={activeQuestion.audio_id} text={activeQuestion.simplified_form ?? activeQuestion.hanzi ?? ""} prominent /><h3>Apa artinya dalam bahasa Indonesia?</h3><div className="lesson-answer-list">{answerOptions.map((option, index) => <button key={`${questionIndex}-${index}`} className={`lesson-answer ${selectedAnswer === option ? (option === activeQuestion.gloss ? "answer-correct" : "answer-wrong") : ""}`} disabled={selectedAnswer !== null} onClick={() => recordMeaningAttempt(option)}>{option}{selectedAnswer === option && (option === activeQuestion.gloss ? <Check size={17} /> : <X size={17} />)}</button>)}</div>{selectedAnswer !== null && <><p className={`lesson-answer-feedback ${selectedAnswer === activeQuestion.gloss ? "" : "answer-feedback-wrong"}`} aria-live="polite">{selectedAnswer === activeQuestion.gloss ? "Benar!" : `Belum tepat. Artinya: ${activeQuestion.gloss}.`}</p><button className="button button-primary lesson-next" disabled={savingProgress} onClick={() => void continueQuiz()}>{savingProgress ? "Menyimpan kemajuan…" : questionIndex + 1 === quizItems.length ? "Lihat hasil" : "Berikutnya"} <ArrowRight /></button></>}</div> : null}</section>}
+      {phase === 4 && scenarioActivity && <section className="lesson-stage"><div className="lesson-stage-heading"><span className="tag">LANGKAH 5 · GUNAKAN</span><h2>{scenarioActivity.title}</h2><p>{scenarioActivity.objective}</p></div><div className="scenario-writing-card"><p>{scenarioActivity.instructions}</p>{scenarioLoading ? <div className="loader" /> : <><label htmlFor="scenario-response">Kalimat Mandarinmu<textarea id="scenario-response" rows={4} maxLength={1200} value={scenarioDraft} onChange={(event) => { setScenarioDraft(event.target.value); setScenarioSaved(false); }} placeholder="Tulis kalimat di sini…" /></label><div className="scenario-response-meta"><span>{scenarioDraft.length}/1200</span><span>Jawaban tersimpan dengan akunmu; tidak dikirim ke AI.</span></div><fieldset><legend>Bagaimana perasaanmu tentang jawabanmu?</legend><label><input type="radio" name="scenario-confidence" checked={scenarioSelfAssessment === "confident"} onChange={() => { setScenarioSelfAssessment("confident"); setScenarioSaved(false); }} /> Cukup yakin</label><label><input type="radio" name="scenario-confidence" checked={scenarioSelfAssessment === "repeat"} onChange={() => { setScenarioSelfAssessment("repeat"); setScenarioSaved(false); }} /> Ingin berlatih lagi</label><label><input type="radio" name="scenario-confidence" checked={scenarioSelfAssessment === "unsure"} onChange={() => { setScenarioSelfAssessment("unsure"); setScenarioSaved(false); }} /> Belum yakin</label></fieldset><button className="button button-primary" disabled={scenarioSaving || !scenarioDraft.trim()} onClick={() => void saveScenarioResponse()}>{scenarioSaving ? "Menyimpan…" : scenarioSaved ? "Perbarui jawaban" : "Simpan jawaban"} <Check /></button></>}{scenarioNotice && <InlineNotice>{scenarioNotice}</InlineNotice>}</div>{scenarioSaved && <div className="lesson-result lesson-complete-card"><div className="lesson-result-mark"><Check /></div><span className="tag">PELAJARAN SELESAI</span><h2>Bagus, jawabanmu sudah tersimpan.</h2><p>Seluruh langkah pelajaran ini selesai. Kemajuanmu tersimpan di akun dan akan muncul di halaman profil pengelola sebagai status, tanpa isi jawabanmu.</p><div className="lesson-result-actions"><Link className="button button-primary" to="/paths">Pilih pelajaran berikutnya <ArrowRight /></Link><Link className="button button-soft" to="/">Kembali ke beranda</Link></div></div>}</section>}
     </> : <div className="empty-card"><div className="empty-icon"><BookOpen /></div><h3>Belum ada materi terbit</h3><p>Bagian ini menampilkan materi yang sudah lolos pemeriksaan editorial. Draf tidak ikut disajikan ke pembelajar.</p></div>}
   </div></Protected>;
 }
@@ -595,10 +649,12 @@ function GuidedWritingPage() {
   const [searchParams] = useSearchParams();
   const placementId = searchParams.get("placementId");
   const unitId = searchParams.get("unitId");
+  const writingActivityId = searchParams.get("activityId");
   const returnWordId = searchParams.get("returnWordId");
   const returnParams = new URLSearchParams();
   if (placementId) returnParams.set("placementId", placementId);
   if (unitId) returnParams.set("unitId", unitId);
+  if (writingActivityId) returnParams.set("activity", writingActivityId);
   const returnQuery = returnParams.toString();
   const returnTo = returnWordId
     ? `/word/${returnWordId}${returnQuery ? `?${returnQuery}` : ""}`
@@ -613,6 +669,10 @@ function GuidedWritingPage() {
   const [strokeIndex, setStrokeIndex] = useState(-1);
   const [playing, setPlaying] = useState(false);
   const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    if (!writingActivityId) return;
+    void api(`/activities/${encodeURIComponent(writingActivityId)}/progress`, { method: "POST", body: JSON.stringify({ state: "in_progress", currentItemOrdinal: 0 }) }).catch(() => undefined);
+  }, [writingActivityId]);
   useEffect(() => {
     let writer: HanziWriter | undefined;
     let cancelled = false;
@@ -685,7 +745,12 @@ function GuidedWritingPage() {
       onMistake: (stroke) => setResult("Perhatikan arah dan urutan guratan " + (stroke.strokeNum + 1)),
       onComplete: (summary) => {
         setResult(summary.totalMistakes ? "Sesi selesai · " + summary.totalMistakes + " koreksi arah atau bentuk" : "Semua guratan selesai dengan benar");
-        if (currentSession?.user.id) void saveAttempt({ contentType: "character", contentId: characterId, curriculumPlacementId: placementId ?? undefined, activityMode: "guided_writing", dimensions: { strokeOrder: summary.totalMistakes ? "needs_practice" : "correct" }, engineVersion: "hanzi-writer-local" }, currentSession.user.id);
+        if (currentSession?.user.id) void saveAttempt({ contentType: "character", contentId: characterId, curriculumPlacementId: placementId ?? undefined, activityId: writingActivityId ?? undefined, activityMode: "guided_writing", dimensions: { strokeOrder: summary.totalMistakes ? "needs_practice" : "correct" }, engineVersion: "hanzi-writer-local" }, currentSession.user.id);
+        if (writingActivityId) void api<{ state: LessonActivity["state"]; completedCount: number; totalCount: number }>(`/activities/${encodeURIComponent(writingActivityId)}/characters/${encodeURIComponent(characterId)}/complete`, { method: "POST" })
+          .then((progress) => setResult(progress.state === "completed"
+            ? "Semua karakter pelajaran selesai dilatih. Kembali ke pelajaran untuk melanjutkan."
+            : `Karakter tersimpan · ${progress.completedCount} / ${progress.totalCount} sudah dilatih. Kembali ke pelajaran untuk karakter berikutnya.`))
+          .catch(() => setResult("写字练习完成了，但进度暂时未同步。请保持联网后返回课程重试。"));
       },
     }));
   };

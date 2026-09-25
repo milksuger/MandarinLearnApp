@@ -5,6 +5,7 @@ import { createAuth, type AppBindings } from "./auth";
 
 type Principal = { id: string; email: string; name: string } | null;
 type AppEnv = { Bindings: AppBindings; Variables: { principal: Principal; requestId: string } };
+type LessonActivityRow = { id: string; activityKind: string; title: string; objective: string; instructions: string; ordinal: number; state: "not_started" | "in_progress" | "completed"; currentItemOrdinal: number; correctCount: number };
 const app = new Hono<AppEnv>();
 const simplifyTraditionalCharacter = OpenCC.Converter({ from: "t", to: "cn" });
 
@@ -339,8 +340,8 @@ app.get("/api/v1/units/:unitId", async (c) => {
     FROM curriculum_units u JOIN curricula c ON c.id = u.curriculum_id
     WHERE u.id = ? AND u.status = 'published' AND c.status = 'published'`).bind(unitId).first();
   if (!unit) return jsonError("not_found", "Pelajaran belum tersedia.", 404);
-  const [rows, activities, grammar, dialogueTurns, storyParagraphs] = await Promise.all([c.env.DB.prepare(`SELECT p.id AS placement_id, p.ordinal,
-    v.id AS vocabulary_id, v.simplified_form, ch.id AS character_id, ch.hanzi, ch.stroke_count,
+  const [rows, activities, writingProgress, grammar, dialogueTurns, storyParagraphs] = await Promise.all([c.env.DB.prepare(`SELECT p.id AS placement_id, p.ordinal,
+    v.id AS vocabulary_id, v.simplified_form, ch.id AS character_id, ch.hanzi, ch.stroke_count, ch.stroke_data_status AS stroke_data_status,
     r.id AS reading_id, r.pinyin_json, r.numbered_pinyin,
     (SELECT e.simplified_text FROM examples e WHERE e.vocabulary_id = v.id AND e.status = 'approved' AND e.locale = 'id' ORDER BY e.id LIMIT 1) AS example_text,
     (SELECT e.numbered_pinyin FROM examples e WHERE e.vocabulary_id = v.id AND e.status = 'approved' AND e.locale = 'id' ORDER BY e.id LIMIT 1) AS example_pinyin,
@@ -360,9 +361,13 @@ app.get("/api/v1/units/:unitId", async (c) => {
     WHERE p.unit_id = ? ORDER BY p.ordinal`)
     .bind(unitId).all(),
     c.env.DB.prepare(`SELECT a.id, a.activity_kind AS activityKind, a.title, a.objective, a.instructions,
-      a.ordinal, COALESCE(lp.state, 'not_started') AS state, COALESCE(lp.current_item_ordinal, 0) AS currentItemOrdinal
+      a.ordinal, COALESCE(lp.state, 'not_started') AS state, COALESCE(lp.current_item_ordinal, 0) AS currentItemOrdinal,
+      COALESCE(lp.correct_count, 0) AS correctCount
       FROM curriculum_activities a LEFT JOIN learner_activity_progress lp ON lp.activity_id = a.id AND lp.user_id = ?
-      WHERE a.unit_id = ? AND a.status = 'published' ORDER BY a.ordinal`).bind(principal?.id ?? '', unitId).all(),
+      WHERE a.unit_id = ? AND a.status = 'published' ORDER BY a.ordinal`).bind(principal?.id ?? '', unitId).all<LessonActivityRow>(),
+    c.env.DB.prepare(`SELECT p.activity_id AS activityId, p.character_id AS characterId
+      FROM learner_activity_character_progress p JOIN curriculum_activities a ON a.id = p.activity_id
+      WHERE p.user_id = ? AND a.unit_id = ? AND a.status = 'published'`).bind(principal?.id ?? '', unitId).all(),
     c.env.DB.prepare(`SELECT gp.id, gp.title, gp.pattern, gp.explanation, gp.usage_notes AS usageNotes
       FROM curriculum_activities ca JOIN curriculum_activity_items cai ON cai.activity_id = ca.id
       JOIN grammar_points gp ON gp.id = cai.grammar_point_id
@@ -379,7 +384,13 @@ app.get("/api/v1/units/:unitId", async (c) => {
       WHERE s.unit_id = ? AND s.status = 'approved' AND sp.status = 'approved'
       ORDER BY s.id, sp.ordinal`).bind(unitId).all(),
   ]);
-  return c.json({ unit, items: rows.results, activities: activities.results,
+  const completedCharactersByActivity = new Map<string, string[]>();
+  for (const progress of writingProgress.results as Array<{ activityId: string; characterId: string }>) {
+    completedCharactersByActivity.set(progress.activityId, [...(completedCharactersByActivity.get(progress.activityId) ?? []), progress.characterId]);
+  }
+  return c.json({ unit, items: rows.results, activities: activities.results.map((activity) => ({
+    ...activity, completedCharacterIds: completedCharactersByActivity.get(activity.id) ?? [],
+  })),
     grammar: grammar.results, dialogueTurns: dialogueTurns.results, storyParagraphs: storyParagraphs.results });
 });
 
@@ -387,7 +398,7 @@ app.post("/api/v1/activities/:activityId/progress", async (c) => {
   const principal = await requirePrincipal(c);
   if (!principal) return jsonError("unauthenticated", "Silakan masuk terlebih dahulu.", 401);
   const activityId = c.req.param("activityId");
-  const body = parseBody(z.object({ state: z.enum(["in_progress","completed"]), currentItemOrdinal: z.number().int().min(0).max(500) }).strict(), await c.req.json().catch(() => null));
+  const body = parseBody(z.object({ state: z.enum(["in_progress","completed"]), currentItemOrdinal: z.number().int().min(0).max(500), correctCount: z.number().int().min(0).max(500).optional() }).strict(), await c.req.json().catch(() => null));
   if (!body) return jsonError("invalid_request", "Kemajuan aktivitas tidak valid.");
   const activity = await c.env.DB.prepare(`SELECT a.id, (SELECT COUNT(*) FROM curriculum_activity_items i WHERE i.activity_id = a.id) AS itemCount
     FROM curriculum_activities a JOIN curriculum_units u ON u.id = a.unit_id JOIN curricula c ON c.id = u.curriculum_id
@@ -395,16 +406,60 @@ app.post("/api/v1/activities/:activityId/progress", async (c) => {
     .bind(activityId).first<{ id: string; itemCount: number }>();
   if (!activity) return jsonError("activity_unavailable", "Aktivitas ini belum tersedia.", 404);
   if (activity.itemCount > 0 && body.currentItemOrdinal >= activity.itemCount) return jsonError("invalid_cursor", "Posisi aktivitas sudah melewati materinya.");
-  await c.env.DB.prepare(`INSERT INTO learner_activity_progress(user_id, activity_id, state, current_item_ordinal, started_at, completed_at)
-    VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), CASE WHEN ? = 'completed' THEN strftime('%Y-%m-%dT%H:%M:%fZ','now') ELSE NULL END)
+  if (body.correctCount !== undefined && activity.itemCount > 0 && body.correctCount > activity.itemCount) return jsonError("invalid_score", "Nilai latihan tidak valid.");
+  await c.env.DB.prepare(`INSERT INTO learner_activity_progress(user_id, activity_id, state, current_item_ordinal, correct_count, started_at, completed_at)
+    VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), CASE WHEN ? = 'completed' THEN strftime('%Y-%m-%dT%H:%M:%fZ','now') ELSE NULL END)
     ON CONFLICT(user_id, activity_id) DO UPDATE SET
       state = CASE WHEN learner_activity_progress.state = 'completed' THEN 'completed' ELSE excluded.state END,
       current_item_ordinal = CASE WHEN learner_activity_progress.state = 'completed' THEN learner_activity_progress.current_item_ordinal ELSE excluded.current_item_ordinal END,
+      correct_count = CASE WHEN learner_activity_progress.state = 'completed' AND excluded.state != 'completed' THEN learner_activity_progress.correct_count ELSE excluded.correct_count END,
       started_at = COALESCE(learner_activity_progress.started_at, excluded.started_at),
       completed_at = CASE WHEN learner_activity_progress.state = 'completed' THEN learner_activity_progress.completed_at WHEN excluded.state = 'completed' THEN excluded.completed_at ELSE NULL END,
       updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')`)
-    .bind(principal.id, activityId, body.state, body.currentItemOrdinal, body.state).run();
-  return c.json({ ok: true, activityId, ...body });
+    .bind(principal.id, activityId, body.state, body.currentItemOrdinal, body.correctCount ?? 0, body.state).run();
+  const saved = await c.env.DB.prepare(`SELECT state, current_item_ordinal AS currentItemOrdinal, correct_count AS correctCount
+    FROM learner_activity_progress WHERE user_id = ? AND activity_id = ?`).bind(principal.id, activityId)
+    .first<{ state: "in_progress" | "completed"; currentItemOrdinal: number; correctCount: number }>();
+  return c.json({ ok: true, activityId, ...saved });
+});
+
+app.post("/api/v1/activities/:activityId/characters/:characterId/complete", async (c) => {
+  const principal = await requirePrincipal(c);
+  if (!principal) return jsonError("unauthenticated", "Silakan masuk terlebih dahulu.", 401);
+  const { activityId, characterId } = c.req.param();
+  const activity = await c.env.DB.prepare(`SELECT ca.id, ca.unit_id AS unitId
+    FROM curriculum_activities ca JOIN curriculum_units u ON u.id = ca.unit_id JOIN curricula cr ON cr.id = u.curriculum_id
+    WHERE ca.id = ? AND ca.activity_kind = 'writing' AND ca.status = 'published' AND u.status = 'published' AND cr.status = 'published'
+      AND EXISTS (SELECT 1 FROM curriculum_placements cp LEFT JOIN vocabulary_characters vc ON vc.vocabulary_id = cp.vocabulary_id
+        WHERE cp.unit_id = ca.unit_id AND (cp.character_id = ? OR vc.character_id = ?))`)
+    .bind(activityId, characterId, characterId).first<{ id: string; unitId: string }>();
+  const character = await c.env.DB.prepare(`SELECT id FROM characters WHERE id = ? AND status = 'approved' AND stroke_data_status = 'approved'`)
+    .bind(characterId).first<{ id: string }>();
+  if (!activity || !character) return jsonError("character_unavailable", "这个课程字符暂时没有可用的已审核笔顺。", 404);
+  await c.env.DB.prepare(`INSERT INTO learner_activity_character_progress(user_id, activity_id, character_id)
+    VALUES (?, ?, ?) ON CONFLICT(user_id, activity_id, character_id) DO NOTHING`)
+    .bind(principal.id, activityId, characterId).run();
+  const counts = await c.env.DB.prepare(`SELECT
+      (SELECT COUNT(DISTINCT ch.id) FROM curriculum_placements cp
+        LEFT JOIN vocabulary_characters vc ON vc.vocabulary_id = cp.vocabulary_id
+        JOIN characters ch ON ch.id = COALESCE(cp.character_id, vc.character_id)
+        WHERE cp.unit_id = ? AND ch.status = 'approved' AND ch.stroke_data_status = 'approved') AS total,
+      (SELECT COUNT(*) FROM learner_activity_character_progress WHERE user_id = ? AND activity_id = ?) AS completed`)
+    .bind(activity.unitId, principal.id, activityId).first<{ total: number; completed: number }>();
+  const complete = Boolean(counts && counts.total > 0 && counts.completed >= counts.total);
+  await c.env.DB.prepare(`INSERT INTO learner_activity_progress(user_id, activity_id, state, current_item_ordinal, correct_count, started_at, completed_at)
+    VALUES (?, ?, ?, 0, 0, strftime('%Y-%m-%dT%H:%M:%fZ','now'), CASE WHEN ? = 1 THEN strftime('%Y-%m-%dT%H:%M:%fZ','now') ELSE NULL END)
+    ON CONFLICT(user_id, activity_id) DO UPDATE SET
+      state = CASE WHEN learner_activity_progress.state = 'completed' OR excluded.state = 'completed' THEN 'completed' ELSE 'in_progress' END,
+      completed_at = CASE WHEN learner_activity_progress.state = 'completed' THEN learner_activity_progress.completed_at WHEN excluded.state = 'completed' THEN excluded.completed_at ELSE NULL END,
+      updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')`)
+    .bind(principal.id, activityId, complete ? 'completed' : 'in_progress', complete ? 1 : 0).run();
+  const saved = await c.env.DB.prepare(`SELECT state FROM learner_activity_progress WHERE user_id = ? AND activity_id = ?`)
+    .bind(principal.id, activityId).first<{ state: 'in_progress' | 'completed' }>();
+  const completedRows = await c.env.DB.prepare(`SELECT character_id AS characterId FROM learner_activity_character_progress
+    WHERE user_id = ? AND activity_id = ?`).bind(principal.id, activityId).all<{ characterId: string }>();
+  return c.json({ ok: true, activityId, state: saved?.state ?? 'in_progress', completedCount: counts?.completed ?? 0,
+    totalCount: counts?.total ?? 0, completedCharacterIds: completedRows.results.map((row) => row.characterId) });
 });
 
 app.get("/api/v1/scenario-responses/:activityId", async (c) => {

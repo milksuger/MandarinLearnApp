@@ -678,12 +678,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .lesson-stepper { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 0 0 10px; }
+.lesson-stepper-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .lesson-step { min-width: 0; min-height: 46px; padding: 7px 9px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 12px; color: #737889; background: white; font-size: 11px; font-weight: 750; text-align: left; cursor: pointer; }
-.lesson-step:disabled { opacity: .55; cursor: not-allowed; }
+.lesson-step:disabled { opacity: .78; cursor: not-allowed; }
 .lesson-step > span { width: 24px; height: 24px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; background: #f1f2f6; color: #6c7180; font-size: 10px; }
 .lesson-step-active { border-color: #efb41e; color: #785900; background: #fff8e5; }
 .lesson-step-active > span, .lesson-step-done > span { background: var(--amber); color: #33290f; }
 .lesson-step-done { color: #535b68; }
+.lesson-step-locked > span { color: #788091; background: #eceef3; }
+.lesson-step-caption { margin: -2px 0 8px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 9px; color: #777d8e; font-size: 11px; line-height: 1.5; }
+.lesson-step-caption strong { color: #5c6374; font-size: 11px; }
 .lesson-progress-track { height: 5px; margin: 0 0 19px; overflow: hidden; border-radius: 99px; background: #eceef3; }
 .lesson-progress-track > span { height: 100%; display: block; border-radius: inherit; background: linear-gradient(90deg, #ffd768, #ffb800); transition: width 220ms ease; }
 .lesson-stage { padding: 21px; border: 1px solid var(--line); border-radius: 18px; background: white; box-shadow: 0 7px 24px rgba(37,42,64,.035); }
@@ -723,6 +727,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .lesson-result h2 { margin: 8px 0; font-size: 20px; }
 .lesson-result p { color: #737889; font-size: 12px; line-height: 1.6; }
 .lesson-result-actions { margin-top: 16px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.lesson-complete-card { margin-top: 16px; }
+.lesson-character-done { border-color: #b8dfca; background: #f3fbf6; }
+.lesson-character-done strong { color: #18764a; }
 .unit-row-locked { color: #707586; background: #f7f8fb; }
 .unit-row-locked .unit-number { color: #737889; background: #eceef3; }
 .unit-row-locked .unit-progress { color: #737889; background: #eceef3; }
