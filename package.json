@@ -12,7 +12,8 @@
     "types:cloudflare": "wrangler types",
     "db:migrate:local": "wrangler d1 migrations apply mandarinlearnapp --local",
     "db:migrate:remote": "wrangler d1 migrations apply mandarinlearnapp --remote",
-    "content:import-strokes": "node scripts/import-stroke-data.mjs"
+    "content:import-strokes": "node scripts/import-stroke-data.mjs",
+    "content:generate-expansion": "node scripts/generate-course-expansion-migration.mjs"
   },
   "dependencies": {
     "@fontsource/plus-jakarta-sans": "^5.3.0",

@@ -11,6 +11,7 @@ This repository contains the runnable Cloudflare preview based on the user-provi
 - [Google Stitch prototype prompt](docs/stitch-prototype-prompt.md)
 - [Administrator portal Stitch prompt](docs/admin-stitch-prompt.md)
 - [Research and architecture baseline](docs/research-and-architecture-baseline.md)
+- [Course content data and update process](docs/content-data.md)
 - [Stitch export visual reference](docs/stitch-design-reference.md)
 - [Product spec](specs/001-platform-foundation/spec.md)
 - [Architecture decisions](specs/001-platform-foundation/architecture.md)
@@ -27,8 +28,8 @@ The learner app targets phones and tablets only, with special attention to stylu
 - Cloudflare Workers for the versioned API and D1 for canonical account, curriculum, activity, and audit records.
 - Provider-independent domain/repository contracts and SQL migrations to make a later database move practical.
 - No paid runtime speech, handwriting-recognition, email, or hosting services. Pronunciation playback uses exact contextual recordings whose source/license is verified, or which receive an individual pronunciation review. Missing audio remains unavailable; no synthesized or syllable-spliced fallback is used.
-- Starter preview: account registration/sign-in, server-backed learner records and sync, phone/tablet writing practice, local freehand handwriting suggestions, a PC administrator portal, simplified-character stroke data for 34 characters, and exact-source recordings for 你好, 你, and 我. These are openly licensed community recordings; none is described as government-certified. Audio stays unavailable when the exact word/context recording is missing.
-- The everyday path contains 26 word placements across greetings, self-introduction, home/family, food/drink, and getting around. HSK 2.0 (six levels) and HSK 3.0 (three stages/nine levels) remain visible; level 1 in each has 20 original app-written beginner exercises. These are not official HSK word lists. Official HSK word lists and syllabus text are not bundled because redistribution permission has not been confirmed. Writing attempts retain their lesson placement and derived outcomes so authorized admins can inspect an individual learner's progress by path and unit.
+- Starter preview: account registration/sign-in, server-backed learner records and sync, phone/tablet writing practice, local freehand handwriting suggestions, a PC administrator portal, and exact-source recordings for 你好, 你, and 我. These are openly licensed community recordings; none is described as government-certified. Audio stays unavailable when the exact word/context recording is missing.
+- The course library now adds 56 project-authored words and examples across seven daily-life units, with placements in HSK 2.0 levels 2–3 and HSK 3.0 levels 2–3. Together with level 1, levels 1–3 now contain exercises in both HSK paths. Higher levels remain structural navigation awaiting more authored content. HSK placements are learning sequences, not official word lists. Writing attempts retain lesson placement and derived outcomes so authorized admins can inspect an individual learner's progress by path and unit.
 
 ## Sources and licensing
 
