@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router";
-import { Activity, ArrowLeft, ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Cloud, Compass, Flame, Headphones, Home, Layers3, LogOut, Menu, Pause, PenLine, Play, RotateCcw, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
-import HanziWriter from "hanzi-writer";
-import OpenCC from "opencc-js/t2cn";
-import audioAssetManifest from "../../content/audio-assets-manifest.json";
+import { Activity, ArrowLeft, ArrowRight, Ban, BookOpen, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Cloud, Compass, Flag, Flame, Headphones, Home, Layers3, LogOut, Menu, MessageCircle, Pause, PenLine, Play, RotateCcw, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
+import type HanziWriter from "hanzi-writer";
 import { authClient } from "./auth-client";
 import { api, audioUrl } from "../shared/api";
 import { enqueueAttempt, enqueueRecognition, pendingAttempts, syncOutbox } from "../features/sync/outbox";
@@ -14,6 +12,12 @@ type UserProfile = { display_name: string; email: string; locale: string; daily_
 type Metrics = { learned_items: number; attempts: number; correct: number; streak_days: number };
 type Unit = { id: string; title: string; description: string | null; curriculum_name: string };
 type UnitItem = { placement_id: string; vocabulary_id: string | null; simplified_form: string | null; character_id: string | null; hanzi: string | null; stroke_count: number | null; reading_id: string | null; pinyin_json: string | null; numbered_pinyin: string | null; gloss: string | null; audio_id: string | null; duration_ms: number | null; example_text: string | null; example_pinyin: string | null; example_translation: string | null };
+type LessonActivity = { id: string; activityKind: string; title: string; objective: string; instructions: string; ordinal: number; state: "not_started" | "in_progress" | "completed"; currentItemOrdinal: number };
+type LessonExtras = {
+  grammar: Array<{ id: string; title: string; pattern: string; explanation: string; usageNotes: string }>;
+  dialogueTurns: Array<{ id: string; speakerRole: string; speakerLabel: string; simplifiedText: string; pinyinJson: string; translation: string; dialogueTitle: string }>;
+  storyParagraphs: Array<{ id: string; simplifiedText: string; pinyinJson: string; translation: string; storyTitle: string }>;
+};
 
 function useLearnerSession() { return authClient.useSession(); }
 
@@ -26,8 +30,12 @@ function App() {
       <Route path="/signup" element={<AuthPage mode="signup" />} />
       <Route path="/paths" element={<PathsPage />} />
       <Route path="/paths/:pathId" element={<PathPage />} />
+      <Route path="/placement" element={<PlacementPage />} />
       <Route path="/practice" element={<PracticeHubPage />} />
+      <Route path="/practice/speaking" element={<SpeakingPracticePage />} />
+      <Route path="/pinyin" element={<PinyinPage />} />
       <Route path="/discover" element={<DiscoverPage />} />
+      <Route path="/talk" element={<TalkPage />} />
       <Route path="/unit/:unitId" element={<LessonPage />} />
       <Route path="/word/:entryId" element={<WordPage />} />
       <Route path="/write/:characterId" element={<GuidedWritingPage />} />
@@ -42,6 +50,7 @@ function App() {
       <Route path="learners" element={<AdminLearners />} />
       <Route path="learners/:learnerId" element={<AdminLearnerPage />} />
       <Route path="content" element={<AdminContent />} />
+      <Route path="community" element={<AdminCommunity />} />
       <Route path="audit" element={<AdminAudit />} />
     </Route>
     <Route path="*" element={<NotFound />} />
@@ -70,7 +79,7 @@ function LearnerFrame({ user, isPending }: { user: SessionUser | null; isPending
   }, [user]);
   return <div className="learner-frame">
     <header className="learner-topbar"><Link to="/" className="brand"><span className="brand-mark">文</span><span>Belajar Mandarin</span></Link>
-      <div className="topbar-actions"><SyncPill state={syncState} pending={pending} /><Link aria-label={user ? "Buka profil dan pengaturan" : "Masuk ke akun"} title={user ? "Profil dan pengaturan" : "Masuk"} to={user ? "/profile" : "/login"} className="avatar">{user ? user.name.slice(0, 1).toUpperCase() : <UserRound size={18} />}</Link></div>
+      <div className="topbar-actions"><Link className="topbar-community" to="/talk"><MessageCircle /><span>Talk</span></Link><SyncPill state={syncState} pending={pending} /><Link aria-label={user ? "Buka profil dan pengaturan" : "Masuk ke akun"} title={user ? "Profil dan pengaturan" : "Masuk"} to={user ? "/profile" : "/login"} className="avatar">{user ? user.name.slice(0, 1).toUpperCase() : <UserRound size={18} />}</Link></div>
     </header>
     <main className="learner-main">{isPending ? <div className="centered-page"><div className="loader" /></div> : <Outlet />}</main>
     <nav className="mobile-nav" aria-label="Navigasi utama">
@@ -94,7 +103,7 @@ function Protected({ children }: { children: React.ReactNode }) {
 function HomePage({ user }: { user: SessionUser | null }) {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [dueReviews, setDueReviews] = useState<number | null>(null);
-  const [continueTarget, setContinueTarget] = useState<{ unitId: string; unitTitle: string; curriculumName: string } | null>(null);
+  const [continueTarget, setContinueTarget] = useState<{ unitId: string; unitTitle: string; curriculumName: string; activityId?: string; activityOrdinal?: number; currentItemOrdinal?: number } | null>(null);
   const [paths, setPaths] = useState<Array<{ id: string; slug: string; name: string; kind: string; description: string | null }>>([]);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -107,7 +116,7 @@ function HomePage({ user }: { user: SessionUser | null }) {
   const name = user?.name?.trim().split(" ")[0] || "teman";
   return <Protected><div className="home-wrap">
     <section className="greeting-row"><div><p className="eyebrow">SELAMAT DATANG KEMBALI</p><h1>你好, {name} <span className="wave">✦</span></h1><p className="muted">Setiap guratan membawamu selangkah lebih dekat.</p></div><div className="streak-chip" title="Jumlah hari belajar berurutan" aria-label={(metrics?.streak_days ?? 0) + " hari belajar berurutan"}><Flame size={18} /><span><strong>{metrics?.streak_days ?? 0}</strong><small>hari belajar beruntun</small></span></div></section>
-    <section className="daily-card"><div className="daily-copy"><span className="tag tag-white">TUJUAN HARI INI</span><h2>{continueTarget ? `Lanjutkan: ${continueTarget.unitTitle}` : "Belajar sedikit, setiap hari."}</h2><p>{continueTarget ? `${continueTarget.curriculumName} · Lanjutkan topik yang terakhir kamu pelajari.` : "Mulai dengan beberapa kata yang berguna dalam kehidupan sehari-hari."}</p><Link to={continueTarget ? `/unit/${continueTarget.unitId}` : "/paths"} className="button button-dark">{continueTarget ? "Lanjutkan belajar" : "Mulai belajar"} <ArrowRight size={16} /></Link></div><div className="daily-art" aria-hidden="true"><img src="/media/mascot/study-companion.webp" alt="" width="250" height="250" fetchPriority="high" /></div></section>
+    <section className="daily-card"><div className="daily-copy"><span className="tag tag-white">TUJUAN HARI INI</span><h2>{continueTarget ? `Lanjutkan: ${continueTarget.unitTitle}` : "Belajar sedikit, setiap hari."}</h2><p>{continueTarget ? `${continueTarget.curriculumName} · ${continueTarget.activityId ? "Kursus menyimpan langkah dan soal terakhirmu." : "Buka lagi topik yang terakhir kamu pelajari."}` : "Mulai dengan beberapa kata yang berguna dalam kehidupan sehari-hari."}</p><Link to={continueTarget ? `/unit/${continueTarget.unitId}${continueTarget.activityId ? `?activity=${encodeURIComponent(continueTarget.activityId)}` : ""}` : "/paths"} className="button button-dark">{continueTarget ? "Lanjutkan belajar" : "Mulai belajar"} <ArrowRight size={16} /></Link></div><div className="daily-art" aria-hidden="true"><img src="/media/mascot/study-companion.webp" alt="" width="250" height="250" fetchPriority="high" /></div></section>
     <section className="quick-start" aria-label="Cara belajar"><span className="quick-start-title">Mudah dimulai</span><span><b>1</b>Pilih pelajaran</span><span><b>2</b>Dengarkan &amp; baca</span><span><b>3</b>Tulis &amp; ulangi</span></section>
     <section className="metric-grid"><MetricCard icon={<BookOpen />} label="Materi dipelajari" value={metrics?.learned_items ?? 0} unit="kata & karakter" /><MetricCard icon={<Activity />} label="Latihan selesai" value={metrics?.attempts ?? 0} unit="semua sesi" /><MetricCard icon={<Clock3 />} label="Siap diulang" value={dueReviews ?? 0} unit="kata dan karakter" /></section>
     <div className="section-heading"><div><h2>Jalur belajarmu</h2><p>Belajar dari keseharian atau pilih susunan HSK 2.0 maupun HSK 3.0.</p></div><Link to="/paths" className="text-link">Lihat semua <ChevronRight size={16} /></Link></div>
@@ -131,8 +140,65 @@ function PathCard({ path }: { path: { id: string; slug: string; name: string; ki
 function PathsPage() {
   const [paths, setPaths] = useState<Array<{ id: string; slug: string; name: string; kind: string; description: string | null }>>([]);
   useEffect(() => { void api<{ paths: typeof paths }>("/paths").then((data) => setPaths(data.paths)).catch(() => setPaths([])); }, []);
-  return <Protected><div className="page-wrap"><PageBack to="/" label="Beranda" /><PageTitle eyebrow="PILIH JALUR" title="Pilih jalur belajar" subtitle="Mulai dari keseharian atau pilih tingkat HSK. Setelah itu buka satu pelajaran dan ikuti empat langkahnya: kenali kata, baca contoh, menulis, lalu mengulang." />
+  return <Protected><div className="page-wrap"><PageBack to="/" label="Beranda" /><PageTitle eyebrow="PILIH JALUR" title="Pilih jalur belajar" subtitle="Mulai dari keseharian atau pilih tingkat HSK. Setelah itu buka satu pelajaran dan ikuti empat langkahnya: kenali kata, baca contoh, menulis, lalu mengulang." /><Link to="/placement" className="placement-entry"><span className="skill-icon skill-icon-course"><CircleHelp /></span><span><strong>Belum yakin mulai dari mana?</strong><small>Jawab penilaian singkat untuk mendapat saran titik awal. Bukan nilai resmi HSK.</small></span><ChevronRight /></Link>
     {paths.length ? <div className="path-cards path-cards-page">{paths.map((path) => <PathCard key={path.id} path={path} />)}</div> : <div className="empty-card"><div className="empty-icon"><BookOpen /></div><h3>Materi sedang ditinjau</h3><p>Susunan jalur sudah dibuat. Kosakata dan penempatan pelajaran akan diterbitkan setelah sumber serta lisensinya diperiksa.</p><div className="hsk-level-strip">{Array.from({ length: 9 }, (_, i) => <span key={i}>HSK {i + 1}</span>)}</div></div>}
+  </div></Protected>;
+}
+
+type PlacementQuestion = { id: string; ordinal: number; prompt: string; pinyin: string; options: string[] };
+type PlacementResult = { sessionId: string; answered: number; correct: number; recommendation: "foundation" | "elementary" | "developing"; explanation: string; isOfficialHskResult: false };
+
+function PlacementPage() {
+  const [questions, setQuestions] = useState<PlacementQuestion[]>([]);
+  const [index, setIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [result, setResult] = useState<PlacementResult | null>(null);
+  const [busy, setBusy] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    void api<{ questions: PlacementQuestion[] }>("/placement/questions")
+      .then((data) => { setQuestions(data.questions); setError(""); })
+      .catch((cause) => setError(cause instanceof Error ? cause.message : "Belum dapat memuat penilaian."))
+      .finally(() => setBusy(false));
+  }, []);
+
+  const current = questions[index];
+  const submit = async () => {
+    if (!current || answers[current.id] === undefined) return;
+    if (index < questions.length - 1) { setIndex((value) => value + 1); return; }
+    setBusy(true); setError("");
+    try {
+      const response = await api<PlacementResult>("/placement/submit", {
+        method: "POST",
+        body: JSON.stringify({ assessmentVersion: "starting-point-v1", answers: questions.map((question) => ({ questionId: question.id, selectedOption: answers[question.id] })) }),
+      });
+      setResult(response);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Hasil belum tersimpan. Periksa koneksi lalu coba lagi."); }
+    finally { setBusy(false); }
+  };
+  const recommendationLabels = { foundation: "Mulai dari dasar", elementary: "Dasar dengan tantangan", developing: "Siap mencoba materi lanjutan" };
+
+  return <Protected><div className="page-wrap placement-page">
+    <PageBack to="/paths" label="Kembali ke kursus" />
+    <PageTitle eyebrow="SARAN TITIK AWAL" title="Cari materi yang pas untukmu" subtitle="Jawab beberapa soal buatan MandarinLearnApp. Hasilnya hanya saran belajar, bukan ujian atau sertifikat HSK." />
+    {error && <InlineNotice tone="danger">{error}</InlineNotice>}
+    {busy && !current && !result ? <div className="empty-card"><div className="loader" /><p>Menyiapkan soal…</p></div> : result ? <section className="placement-result">
+      <span className="placement-result-icon"><Sparkles /></span><span className="tag">SARAN PRIBADI</span>
+      <h2>{recommendationLabels[result.recommendation]}</h2><p>{result.explanation}</p>
+      <div className="placement-score"><strong>{result.correct}/{result.answered}</strong><span>jawaban tepat</span></div>
+      <InlineNotice>Ini bukan hasil resmi HSK. Saran ini berasal dari penilaian singkat dan dapat berubah seiring kamu belajar.</InlineNotice>
+      <div className="placement-actions"><Link className="button button-primary" to="/paths">Jelajahi jalur belajar <ArrowRight /></Link><button className="button button-soft" onClick={() => { setIndex(0); setAnswers({}); setResult(null); }}>Coba lagi</button></div>
+    </section> : current ? <section className="placement-question">
+      <div className="placement-progress"><span>Pertanyaan {index + 1} dari {questions.length}</span><span>{Math.round(((index + 1) / questions.length) * 100)}%</span></div>
+      <div className="lesson-progress-track"><span style={{ width: `${((index + 1) / questions.length) * 100}%` }} /></div>
+      <div className="placement-prompt" lang="zh-Hans">{current.prompt}</div>
+      {current.pinyin && <p className="placement-pinyin">{current.pinyin}</p>}
+      <AudioButton text={current.prompt} prominent />
+      <h2>Pilih arti atau jawaban yang paling tepat.</h2>
+      <div className="lesson-answer-list">{current.options.map((option, optionIndex) => <button key={`${current.id}-${optionIndex}`} className={`lesson-answer ${answers[current.id] === optionIndex ? "answer-correct" : ""}`} aria-pressed={answers[current.id] === optionIndex} onClick={() => setAnswers((previous) => ({ ...previous, [current.id]: optionIndex }))}>{option}{answers[current.id] === optionIndex && <Check size={17} />}</button>)}</div>
+      <div className="placement-actions">{index > 0 && <button className="button button-soft" onClick={() => setIndex((value) => value - 1)}>Kembali</button>}<button className="button button-primary" disabled={answers[current.id] === undefined || busy} onClick={() => void submit()}>{busy ? "Menyimpan…" : index === questions.length - 1 ? "Lihat saranku" : "Lanjut"} <ArrowRight /></button></div>
+    </section> : <div className="empty-card"><h3>Soal belum tersedia</h3><p>Silakan pilih jalur belajar secara langsung.</p><Link className="button button-primary" to="/paths">Buka kursus</Link></div>}
   </div></Protected>;
 }
 
@@ -151,9 +217,10 @@ function PracticeHubPage() {
   }, []);
   return <Protected><div className="page-wrap"><PageTitle eyebrow="LATIHAN MANDIRI" title="Pilih yang ingin kamu latih" subtitle="Latihan memakai kata dan karakter yang sama dengan kursusmu, agar hasilnya tetap terhubung ke materi yang dipelajari." />
     <div className="practice-hub-grid">
+      <Link className="skill-card" to="/pinyin"><span className="skill-icon skill-icon-course"><CircleHelp /></span><span><strong>Dasar pinyin & nada</strong><small>Pelajari cara membaca pinyin dan membedakan empat nada.</small></span><ChevronRight /></Link>
       <Link className="skill-card" to="/review"><span className="skill-icon skill-icon-review"><RotateCcw /></span><span><strong>Ulangi materi</strong><small>Kerjakan kata dan karakter yang sudah waktunya ditinjau.</small></span><ChevronRight /></Link>
       <Link className="skill-card" to="/freehand"><span className="skill-icon skill-icon-write"><PenLine /></span><span><strong>Kenali tulisanmu</strong><small>Tulis karakter bebas dan pilih kandidat yang kamu maksud.</small></span><ChevronRight /></Link>
-      <Link className="skill-card" to="/discover"><span className="skill-icon skill-icon-listen"><Headphones /></span><span><strong>Dengarkan kosakata</strong><small>Jelajahi arti, pinyin, dan rekaman yang tersedia.</small></span><ChevronRight /></Link>
+      <Link className="skill-card" to="/practice/speaking"><span className="skill-icon skill-icon-listen"><Headphones /></span><span><strong>Dengar, rekam, bandingkan</strong><small>Dengarkan penutur Mandarin, rekam suaramu, lalu bandingkan sendiri.</small></span><ChevronRight /></Link>
       <Link className="skill-card" to="/paths"><span className="skill-icon skill-icon-course"><BookOpen /></span><span><strong>Belajar lewat skenario</strong><small>Ikuti contoh, panduan menulis, dan cek pemahaman.</small></span><ChevronRight /></Link>
     </div>
     <div className="section-heading practice-hub-heading"><div><h2>Latihan dari topik sehari-hari</h2><p>Pilih topik yang sudah memiliki materi.</p></div><Link to="/paths" className="text-link">Semua kursus <ChevronRight /></Link></div>
@@ -161,30 +228,60 @@ function PracticeHubPage() {
   </div></Protected>;
 }
 
-type DiscoverItem = { id: string; simplifiedForm: string; meaning: string | null; pinyinJson: string | null; audioId: string | null };
+function ToneContour({ kind }: { kind: "first" | "second" | "third" | "fourth" | "neutral" }) {
+  const paths = { first: "M8 25 L92 25", second: "M8 40 Q50 40 92 10", third: "M8 13 Q24 38 50 38 Q72 38 92 13", fourth: "M8 10 Q50 10 92 40", neutral: "M8 25 L92 25" };
+  const startY = { first: 25, second: 40, third: 13, fourth: 10, neutral: 25 }[kind];
+  const endY = { first: 25, second: 10, third: 13, fourth: 40, neutral: 25 }[kind];
+  return <svg className={`tone-contour tone-contour-${kind}`} viewBox="0 0 100 50" aria-label={`${kind} tone contour`} role="img"><path d={paths[kind]} /><circle cx="8" cy={startY} r="3" /><circle cx="92" cy={endY} r="3" /></svg>;
+}
+
+function PinyinPage() {
+  const tones = [
+    { kind: "first" as const, name: "Nada pertama", mark: "mā", shape: "tinggi dan datar", text: "Jaga suara tetap tinggi dan rata.", word: "妈妈", audioId: "audio-word-mama", note: "mā adalah suku kata bernada pertama; ma berikutnya adalah nada netral." },
+    { kind: "second" as const, name: "Nada kedua", mark: "shí", shape: "naik", text: "Mulai dari tengah, lalu naik seperti bertanya singkat.", word: "时候", audioId: "audio-word-shihou", note: "Dengarkan nada pada suku kata shí; suku kata hou memakai nada netral." },
+    { kind: "third" as const, name: "Nada ketiga", mark: "shuǐ", shape: "turun lalu naik", text: "Saat diucapkan sendiri, suara turun lalu kembali naik.", word: "水", audioId: "audio-word-water", note: "Nada ketiga dalam rangkaian kalimat sering terdengar lebih pendek dan rendah." },
+    { kind: "fourth" as const, name: "Nada keempat", mark: "shì", shape: "turun tegas", text: "Mulai tinggi dan turun dengan jelas.", word: "是", audioId: "audio-word-shi", note: "Gunakan suara tegas tetapi tetap alami, tanpa berteriak." },
+  ];
+  return <Protected><div className="page-wrap pinyin-page"><PageBack to="/practice" label="Kembali ke latihan" /><PageTitle eyebrow="PONDASI PELAFALAN" title="Kenali pinyin dan nada" subtitle="Pinyin menuliskan bunyi Mandarin dengan huruf Latin. Tanda nada mengubah arti; dengarkan rekaman dan tirukan perlahan." />
+    <section className="pinyin-intro"><div className="pinyin-syllable" lang="zh-Hans">音</div><div><h2>Satu suku kata, tiga bagian</h2><p>Biasanya sebuah suku kata memiliki bunyi awal, bagian vokal, dan nada. Misalnya <strong>sh + ui + 3 → shuǐ</strong>. Beberapa suku kata tidak memiliki bunyi awal.</p><small>Huruf ü tetap memakai dua titik dalam pinyin, misalnya nǚ. Pada keyboard, kamu dapat mengetik v bila ü tidak tersedia.</small></div></section>
+    <div className="tone-lesson-grid">{tones.map((tone) => <article className="tone-lesson-card" key={tone.kind}><div className="tone-card-heading"><div><span className="tag">{tone.name.toUpperCase()}</span><h2>{tone.mark}</h2></div><ToneContour kind={tone.kind} /></div><strong>{tone.shape}</strong><p>{tone.text}</p><div className="tone-example"><span lang="zh-Hans">{tone.word}</span><span>{tone.note}</span><AudioButton assetId={tone.audioId} text={tone.word} /></div></article>)}</div>
+    <section className="detail-card"><h2>Nada netral</h2><p>Nada netral biasanya lebih ringan dan lebih singkat daripada nada penuh. Tinggi suaranya bergantung pada suku kata sebelumnya. Contoh: 妈妈 <strong>mā ma</strong>.</p><AudioButton assetId="audio-word-mama" text="妈妈" /></section>
+    <section className="detail-card"><h2>Perubahan nada dalam ucapan</h2><p>Dua suku kata bernada ketiga yang berurutan biasanya membuat suku kata pertama terdengar bernada kedua. Contoh sapaan 你好 ditulis <strong>nǐ hǎo</strong>, tetapi dalam ucapan alaminya suku kata pertama terdengar mendekati <strong>ní hǎo</strong>.</p><AudioButton text="你好" /></section>
+    <Link className="button button-primary" to="/paths">Mulai belajar lewat kursus <ArrowRight /></Link>
+  </div></Protected>;
+}
+
+type DiscoverItem = { id: string; simplifiedForm: string; meaning: string | null; pinyinJson: string | null; audioId: string | null; readingId: string | null; placementId: string | null };
+type DiscoverCollectionItem = { id: string; type: "grammar" | "dialogue" | "story"; title: string; subtitle: string; preview: string | null; unitId: string; unitTitle: string };
 function DiscoverPage() {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<"all" | "daily_life" | "hsk">("all");
+  const [collection, setCollection] = useState<"words" | "grammar" | "dialogue" | "story">("words");
   const [items, setItems] = useState<DiscoverItem[]>([]);
+  const [collections, setCollections] = useState<DiscoverCollectionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
     setLoading(true);
     const timer = window.setTimeout(() => {
-      void api<{ items: DiscoverItem[] }>(`/discover?q=${encodeURIComponent(query)}&kind=${kind === "all" ? "" : kind}`)
-        .then(({ items: results }) => { if (active) { setItems(results); setError(""); } })
+      void api<{ items?: DiscoverItem[]; collection?: string; collections?: DiscoverCollectionItem[] }>(`/discover?q=${encodeURIComponent(query)}&kind=${kind === "all" ? "" : kind}&collection=${collection}`)
+        .then((result) => { if (active) { setItems(result.items ?? []); setCollections(result.collections ?? []); setError(""); } })
         .catch(() => { if (active) setError("Belum dapat memuat materi. Periksa koneksi lalu coba lagi."); })
         .finally(() => { if (active) setLoading(false); });
     }, 180);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [query, kind]);
+  }, [query, kind, collection]);
+  const collectionNames = { words: "Kata", grammar: "Tata bahasa", dialogue: "Dialog", story: "Cerita" };
   return <Protected><div className="page-wrap discover-page"><PageTitle eyebrow="JELAJAHI MANDARIN" title="Temukan kata baru" subtitle="Cari dengan hanzi, pinyin, atau arti bahasa Indonesia. Buka kata untuk melihat contoh dan karakter penyusunnya." />
     <label className="discover-search"><Search aria-hidden="true" /><span className="sr-only">Cari hanzi, pinyin, atau arti</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Contoh: 你好, nǐ hǎo, halo" autoComplete="off" /><button type="button" onClick={() => setQuery("")} disabled={!query} aria-label="Hapus pencarian"><X /></button></label>
+    <div className="discover-filters" aria-label="Jenis materi">{(Object.keys(collectionNames) as Array<keyof typeof collectionNames>).map((value) => <button key={value} className={collection === value ? "filter-active" : ""} onClick={() => setCollection(value)}>{collectionNames[value]}</button>)}</div>
     <div className="discover-filters" aria-label="Filter materi"><button className={kind === "all" ? "filter-active" : ""} onClick={() => setKind("all")}>Semua</button><button className={kind === "daily_life" ? "filter-active" : ""} onClick={() => setKind("daily_life")}>Keseharian</button><button className={kind === "hsk" ? "filter-active" : ""} onClick={() => setKind("hsk")}>Jalur HSK</button></div>
-    <div className="discover-results-head"><strong>{query ? `Hasil untuk “${query}”` : "Materi yang sudah tersedia"}</strong><span>{loading ? "Mencari…" : `${items.length} kata`}</span></div>
+    <div className="discover-results-head"><strong>{query ? `Hasil “${query}” · ${collectionNames[collection]}` : `${collectionNames[collection]} yang tersedia`}</strong><span>{loading ? "Mencari…" : `${collection === "words" ? items.length : collections.length} materi`}</span></div>
     {error && <InlineNotice tone="danger">{error}</InlineNotice>}
-    {items.length ? <div className="discover-grid">{items.map((item) => <article className="discover-card" key={item.id}><Link to={`/word/${item.id}`} className="discover-card-main"><span className="discover-hanzi">{item.simplifiedForm}</span><span className="discover-word-copy"><strong>{item.meaning ?? "Arti sedang disiapkan"}</strong><small>{formatPinyinJson(item.pinyinJson) || "Pinyin sedang disiapkan"}</small></span><ChevronRight aria-hidden="true" /></Link><AudioButton assetId={item.audioId} text={item.simplifiedForm} /></article>)}</div> : !loading && !error ? <div className="empty-card discover-empty"><div className="empty-icon"><Compass /></div><h3>{query ? "Belum ada kata yang cocok" : "Materi belum tersedia"}</h3><p>{query ? "Coba hanzi, pinyin bertanda nada, atau arti yang lebih umum." : "Kata yang sudah diterbitkan akan muncul di sini."}</p>{query && <button className="button button-soft" onClick={() => setQuery("")}>Lihat semua kata</button>}</div> : null}
+    {collection === "words" && items.length > 0 && <div className="discover-grid">{items.map((item) => <article className="discover-card" key={item.id}><Link to={`/word/${item.id}`} className="discover-card-main"><span className="discover-hanzi">{item.simplifiedForm}</span><span className="discover-word-copy"><strong>{item.meaning ?? "Arti sedang disiapkan"}</strong><small>{formatPinyinJson(item.pinyinJson) || "Pinyin sedang disiapkan"}</small></span><ChevronRight aria-hidden="true" /></Link><AudioButton assetId={item.audioId} text={item.simplifiedForm} /></article>)}</div>}
+    {collection !== "words" && collections.length > 0 && <div className="discover-collection-grid">{collections.map((item) => <Link className="discover-collection-card" to={`/unit/${item.unitId}`} key={item.id}><span className={`collection-mark collection-mark-${item.type}`}>{item.type === "grammar" ? <BookOpen /> : item.type === "dialogue" ? <MessageCircle /> : <Sparkles />}</span><span><small>{item.unitTitle} · {collectionNames[item.type]}</small><strong>{item.title}</strong><p>{item.subtitle}</p>{item.preview && <em lang="zh-Hans">{item.preview}</em>}</span><ChevronRight /></Link>)}</div>}
+    {((collection === "words" && !items.length) || (collection !== "words" && !collections.length)) && !loading && !error ? <div className="empty-card discover-empty"><div className="empty-icon"><Compass /></div><h3>{query ? `Belum ada ${collectionNames[collection].toLowerCase()} yang cocok` : `${collectionNames[collection]} belum tersedia`}</h3><p>{query ? "Coba istilah lain, atau hapus pencarian untuk melihat semua materi." : "Materi yang sudah diterbitkan akan muncul di sini."}</p>{query && <button className="button button-soft" onClick={() => setQuery("")}>Lihat semua materi</button>}</div> : null}
     <p className="discover-note"><ShieldCheck /> Hanya materi yang sudah diterbitkan dan memiliki sumber yang terdaftar akan ditampilkan.</p>
   </div></Protected>;
 }
@@ -195,6 +292,141 @@ function formatPinyinJson(value: string | null) {
     const syllables = JSON.parse(value) as string[];
     return syllables.join(" ");
   } catch { return ""; }
+}
+
+function SpeakingPracticePage() {
+  const [items, setItems] = useState<DiscoverItem[]>([]);
+  const [index, setIndex] = useState(0);
+  const [busy, setBusy] = useState(true);
+  const [recording, setRecording] = useState(false);
+  const [complete, setComplete] = useState(false);
+  const [recordingUrl, setRecordingUrl] = useState("");
+  const [notice, setNotice] = useState("");
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+  const { data: currentSession } = useLearnerSession();
+  useEffect(() => {
+    let active = true;
+    void api<{ items: DiscoverItem[] }>("/discover?kind=daily_life").then(({ items: rows }) => {
+      if (active) { setItems(rows.filter((item) => item.audioId && item.readingId && item.placementId)); setBusy(false); }
+    }).catch(() => { if (active) { setNotice("Belum dapat memuat rekaman. Periksa koneksi lalu coba lagi."); setBusy(false); } });
+    return () => {
+      active = false;
+      if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+  useEffect(() => () => { if (recordingUrl) URL.revokeObjectURL(recordingUrl); }, [recordingUrl]);
+  const item = items[index];
+  const startRecording = async () => {
+    setNotice("");
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") { setNotice("Perangkat ini belum mendukung perekaman suara di browser. Kamu masih bisa mendengarkan dan berlatih tanpa merekam."); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const recorder = new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      chunksRef.current = [];
+      recorder.ondataavailable = (event) => { if (event.data.size) chunksRef.current.push(event.data); };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        if (chunksRef.current.length) {
+          const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/mp4" });
+          setRecordingUrl((previous) => { if (previous) URL.revokeObjectURL(previous); return URL.createObjectURL(blob); });
+        }
+        setRecording(false);
+      };
+      recorder.start(); setRecording(true);
+    } catch { setNotice("Tidak dapat membuka mikrofon. Izinkan akses mikrofon untuk situs ini melalui pengaturan browser, lalu coba lagi."); }
+  };
+  const stopRecording = () => { if (recorderRef.current?.state === "recording") recorderRef.current.stop(); };
+  const rateAndContinue = async (selfAssessment: "confident" | "repeat" | "unsure") => {
+    if (!item || !currentSession?.user.id || !item.readingId || !item.placementId) return;
+    const labels = { confident: "Bagus, saya cukup yakin", repeat: "Saya ingin mengulang", unsure: "Saya belum yakin" };
+    try {
+      await saveAttempt({ contentType: "vocabulary", contentId: item.id, readingId: item.readingId, curriculumPlacementId: item.placementId,
+        skill: "speaking", activityMode: "record_compare", dimensions: { selfAssessment }, engineVersion: "browser-record-and-compare-v1" }, currentSession.user.id);
+      setNotice(labels[selfAssessment]);
+      setRecordingUrl((previous) => { if (previous) URL.revokeObjectURL(previous); return ""; });
+      if (index + 1 < items.length) setIndex((value) => value + 1);
+      else { setComplete(true); setNotice("Selesai! Catatan latihan tersimpan. Rekaman suaramu tidak diunggah dan tidak disimpan."); }
+    } catch { setNotice("Latihan belum masuk antrean sinkronisasi. Coba lagi saat koneksi tersedia."); }
+  };
+  if (busy) return <Protected><div className="centered-page"><div className="loader" /></div></Protected>;
+  return <Protected><div className="page-wrap speaking-practice"><PageBack to="/practice" label="Latihan" /><PageTitle eyebrow="LATIHAN BERBICARA" title="Dengar, rekam, bandingkan" subtitle="Dengarkan rekaman Mandarin yang berlisensi, ucapkan kata, lalu bandingkan dengan rekamanmu sendiri. Tidak ada skor otomatis." />
+    {complete ? <div className="empty-card"><div className="empty-icon"><Check /></div><h3>Latihan berbicara selesai</h3><p>Penilaianmu tersimpan sebagai refleksi diri; aplikasi tidak mengklaim mengukur ketepatan pelafalan.</p><button className="button button-primary" onClick={() => { setIndex(0); setComplete(false); setNotice(""); }}>Mulai lagi</button></div> : !item ? <div className="empty-card"><div className="empty-icon"><Headphones /></div><h3>Belum ada contoh suara untuk latihan</h3><p>Latihan berbicara hanya memakai kata yang memiliki rekaman tepat dan terverifikasi. Materi tanpa model suara tidak akan diisi dengan tebakan.</p><Link className="button button-primary" to="/discover">Jelajahi kata <ArrowRight /></Link></div> : <section className="speaking-card"><div className="speaking-count">KATA {index + 1} DARI {items.length}</div><div className="speaking-hanzi" lang="zh-Hans">{item.simplifiedForm}</div><p className="speaking-pinyin">{formatPinyinJson(item.pinyinJson)}</p><p className="speaking-meaning">{item.meaning}</p><div className="speaking-model"><span>1</span><div><strong>Dengarkan contoh</strong><small>Rekaman Mandarin dari sumber berlisensi</small></div><AudioButton assetId={item.audioId} text={item.simplifiedForm} prominent /></div><div className="speaking-record"><span>2</span><div><strong>Ucapkan dan rekam</strong><small>Audio hanya diproses sementara di perangkat ini.</small></div>{recording ? <button className="button button-danger" onClick={stopRecording}>Hentikan rekaman</button> : <button className="button button-primary" onClick={() => void startRecording()}><Headphones /> Mulai merekam</button>}</div>{recordingUrl && <div className="speaking-playback"><span>3</span><div><strong>Dengarkan suaramu</strong><small>Bandingkan pelafalan dan nadanya sendiri.</small></div><audio controls src={recordingUrl} /></div>}{recordingUrl && <div className="speaking-self-check"><p>Bagaimana menurutmu?</p><div><button className="button button-soft" onClick={() => void rateAndContinue("repeat")}>Ulangi lagi</button><button className="button button-soft" onClick={() => void rateAndContinue("unsure")}>Belum yakin</button><button className="button button-primary" onClick={() => void rateAndContinue("confident")}>Cukup yakin</button></div></div>}</section>}
+    {notice && <InlineNotice>{notice}</InlineNotice>}<p className="privacy-note">Tidak ada rekaman yang dikirim ke server. Hasilnya hanya mencatat bahwa kamu berlatih dan penilaian dirimu sendiri.</p>
+  </div></Protected>;
+}
+
+type CommunityTopic = { id: string; slug: string; title: string; prompt: string };
+type CommunityPost = { id: string; topicId: string | null; topicTitle: string | null; body: string; createdAt: string; authorName: string; commentCount: number };
+type CommunityComment = { id: string; body: string; createdAt: string; authorName: string };
+function TalkPage() {
+  const { data: session } = useLearnerSession();
+  const [topics, setTopics] = useState<CommunityTopic[]>([]);
+  const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [myPosts, setMyPosts] = useState<Array<{ id: string; body: string; status: string; createdAt: string; topicTitle: string | null }>>([]);
+  const [topicId, setTopicId] = useState("");
+  const [draft, setDraft] = useState("");
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const [openPost, setOpenPost] = useState("");
+  const [comments, setComments] = useState<Record<string, CommunityComment[]>>({});
+  const [reply, setReply] = useState("");
+  const [reportReason, setReportReason] = useState("other");
+  const [reportDetails, setReportDetails] = useState("");
+  const load = () => void api<{ topics: CommunityTopic[]; posts: CommunityPost[]; myPosts: typeof myPosts }>("/community/feed")
+    .then((data) => { setTopics(data.topics); setPosts(data.posts); setMyPosts(data.myPosts); setError(""); if (!topicId && data.topics[0]) setTopicId(data.topics[0].id); })
+    .catch((cause) => setError(cause instanceof Error ? cause.message : "Belum dapat memuat komunitas."));
+  useEffect(() => { if (session?.user) load(); }, [session?.user?.id]);
+  const selectedTopic = topics.find((topic) => topic.id === topicId);
+  const submitPost = async (event: React.FormEvent) => {
+    event.preventDefault(); setNotice(""); setError("");
+    try { const response = await api<{ message: string }>("/community/posts", { method: "POST", body: JSON.stringify({ topicId: topicId || undefined, body: draft, locale: "id" }) }); setDraft(""); setNotice(response.message); load(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Pesan belum dapat dikirim."); }
+  };
+  const toggleComments = async (postId: string) => {
+    if (openPost === postId) { setOpenPost(""); return; }
+    setOpenPost(postId);
+    if (!comments[postId]) { try { const data = await api<{ comments: CommunityComment[] }>(`/community/posts/${postId}/comments`); setComments((current) => ({ ...current, [postId]: data.comments })); } catch { setError("Balasan belum dapat dimuat."); } }
+  };
+  const submitReply = async (event: React.FormEvent, postId: string) => {
+    event.preventDefault();
+    try { await api(`/community/posts/${postId}/comments`, { method: "POST", body: JSON.stringify({ body: reply }) }); setReply(""); setNotice("Balasan terkirim untuk pemeriksaan moderator sebelum ditampilkan."); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Balasan belum dapat dikirim."); }
+  };
+  const report = async (subjectType: "post" | "comment", subjectId: string) => {
+    try { await api("/community/reports", { method: "POST", body: JSON.stringify({ subjectType, subjectId, reason: reportReason, details: reportDetails }) }); setReportDetails(""); setNotice("Laporan telah dikirim untuk ditinjau."); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Laporan belum dapat dikirim."); }
+  };
+  const blockAuthor = async (postId: string) => {
+    if (!window.confirm("Sembunyikan semua postingan dari akun ini di feed-mu? Kamu bisa membuka blokir lewat pengaturan komunitas nanti.")) return;
+    try { await api("/community/blocks", { method: "POST", body: JSON.stringify({ postId }) }); setNotice("Postingan dari akun ini disembunyikan."); load(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Akun belum dapat disembunyikan."); }
+  };
+  return <Protected><div className="page-wrap talk-page"><PageTitle eyebrow="KOMUNITAS BELAJAR" title="Belajar bareng" subtitle="Bagikan pertanyaan dan cara belajarmu dengan sesama pembelajar. Pesan diperiksa moderator sebelum tampil." />
+    <div className="community-safety"><ShieldCheck /><div><strong>Komunitas aman untuk belajar</strong><span>Jangan bagikan alamat, nomor pribadi, kata sandi, atau informasi rahasia. Tidak ada pesan pribadi atau unggahan media.</span></div></div>
+    {error && <InlineNotice tone="danger">{error}</InlineNotice>}{notice && <InlineNotice>{notice}</InlineNotice>}
+    <form className="community-compose detail-card" onSubmit={(event) => void submitPost(event)}><h2><MessageCircle /> Mulai percakapan</h2>{topics.length > 0 && <label>Topik<select value={topicId} onChange={(event) => setTopicId(event.target.value)}>{topics.map((topic) => <option key={topic.id} value={topic.id}>{topic.title}</option>)}</select></label>}{selectedTopic && <p className="community-prompt">{selectedTopic.prompt}</p>}<label>Pesan<textarea value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={1200} rows={4} placeholder="Tulis dalam bahasa Indonesia atau Mandarin…" required /></label><div className="community-compose-foot"><small>{draft.length}/1200 · Maksimal 5 topik per hari</small><button className="button button-primary" disabled={!draft.trim()}>Kirim untuk ditinjau <ArrowRight /></button></div></form>
+    {myPosts.length > 0 && <section className="community-own-posts"><h2>Pesanmu yang sedang ditinjau</h2>{myPosts.map((post) => <article className="community-own-row" key={post.id}><span className={`community-status status-${post.status}`}>{post.status === "pending" ? "Menunggu pemeriksaan" : "Perlu disunting"}</span><p>{post.body}</p><small>{post.topicTitle ?? "Komunitas"} · {new Date(post.createdAt).toLocaleDateString("id-ID")}</small></article>)}</section>}
+    <section className="community-feed"><div className="section-heading"><div><h2>Percakapan terbaru</h2><p>Hanya pesan yang sudah disetujui moderator yang tampil.</p></div></div>{posts.length ? posts.map((post) => <article className="community-post" key={post.id}><div className="community-post-head"><span className="avatar avatar-small">{post.authorName.slice(0,1).toUpperCase()}</span><div><strong>{post.authorName}</strong><small>{post.topicTitle ?? "Belajar Mandarin"} · {new Date(post.createdAt).toLocaleDateString("id-ID")}</small></div><details className="community-actions"><summary aria-label="Tindakan postingan"><CircleHelp /></summary><button onClick={() => void blockAuthor(post.id)}><Ban /> Sembunyikan akun ini</button></details></div><p className="community-post-body">{post.body}</p><div className="community-post-actions"><button className="text-link" onClick={() => void toggleComments(post.id)}><MessageCircle /> {post.commentCount} balasan</button><details className="community-report"><summary><Flag /> Laporkan</summary><div><label>Alasan<select value={reportReason} onChange={(event) => setReportReason(event.target.value)}><option value="spam">Spam</option><option value="harassment">Perundungan</option><option value="personal_data">Data pribadi</option><option value="copyright">Hak cipta</option><option value="other">Lainnya</option></select></label><textarea maxLength={600} value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} placeholder="Keterangan tambahan (opsional)" /><button className="button button-soft" onClick={() => void report("post", post.id)}>Kirim laporan</button></div></details></div>{openPost === post.id && <div className="community-comments">{comments[post.id]?.map((comment) => <div className="community-comment" key={comment.id}><div><strong>{comment.authorName}</strong><small>{new Date(comment.createdAt).toLocaleDateString("id-ID")}</small></div><p>{comment.body}</p><button className="text-link" onClick={() => void report("comment", comment.id)}><Flag /> Laporkan balasan</button></div>)}{comments[post.id]?.length === 0 && <p className="muted">Belum ada balasan yang disetujui.</p>}<form onSubmit={(event) => void submitReply(event, post.id)}><label className="sr-only" htmlFor={`reply-${post.id}`}>Tulis balasan</label><input id={`reply-${post.id}`} value={reply} maxLength={800} onChange={(event) => setReply(event.target.value)} placeholder="Tulis balasan…" required /><button className="button button-soft" disabled={!reply.trim()}>Balas</button></form><small>Balasan juga ditinjau moderator sebelum tampil. Maksimal 15 balasan per hari.</small></div>}</article>) : !error ? <div className="empty-card community-empty"><div className="empty-icon"><MessageCircle /></div><h3>Jadilah yang pertama berbagi</h3><p>Topik pembuka sudah tersedia di atas. Pesan akan muncul di percakapan setelah moderator menyetujuinya.</p></div> : null}</section>
+  </div></Protected>;
+}
+
+function AdminCommunity() {
+  const [queue, setQueue] = useState<{ posts: Array<{ id: string; body: string; createdAt: string; authorName: string; topicTitle: string | null }>; comments: Array<{ id: string; postId: string; body: string; createdAt: string; authorName: string; parentBody: string }>; reports: Array<{ id: string; subjectType: string; subjectId: string; reason: string; details: string; createdAt: string; body: string | null }> } | null>(null);
+  const [error, setError] = useState(""); const [notice, setNotice] = useState("");
+  const load = () => void api<typeof queue>("/admin/community/queue").then((data) => setQueue(data)).catch((cause) => setError(cause instanceof Error ? cause.message : "Akses moderator diperlukan."));
+  useEffect(() => { load(); }, []);
+  const moderate = async (kind: "posts" | "comments", id: string, decision: "approved" | "rejected") => { try { await api(`/admin/community/${kind}/${id}`, { method: "PATCH", body: JSON.stringify({ decision }) }); setNotice("Keputusan tersimpan dan tercatat di audit."); load(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Keputusan belum tersimpan."); } };
+  const reviewReport = async (reportId: string, hideContent: boolean) => { try { await api(`/admin/community-reports/${reportId}`, { method: "PATCH", body: JSON.stringify({ decision: hideContent ? "resolved" : "dismissed", hideContent }) }); setNotice("Laporan sudah ditangani."); load(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Laporan belum dapat ditangani."); } };
+  return <><AdminPageHead eyebrow="MODERASI" title="Komunitas" subtitle="Kiriman dan balasan baru hanya terlihat oleh penulis sampai disetujui. Akses moderator tercatat di audit." />{error && <InlineNotice tone="danger">{error}</InlineNotice>}{notice && <InlineNotice>{notice}</InlineNotice>}{queue && <>
+    <section className="admin-panel review-section"><div className="panel-head"><div><h2>Topik menunggu moderasi</h2><p>{queue.posts.length} kiriman</p></div></div>{queue.posts.length ? queue.posts.map((post) => <div className="community-admin-item" key={post.id}><div><strong>{post.topicTitle ?? "Tanpa topik"} · {post.authorName}</strong><p>{post.body}</p><small>{new Date(post.createdAt).toLocaleString("id-ID")}</small></div><div><button className="button button-soft" onClick={() => void moderate("posts", post.id, "rejected")}>Tolak</button><button className="button button-primary" onClick={() => void moderate("posts", post.id, "approved")}>Setujui</button></div></div>) : <div className="table-empty">Tidak ada kiriman menunggu.</div>}</section>
+    <section className="admin-panel review-section"><div className="panel-head"><div><h2>Balasan menunggu moderasi</h2><p>{queue.comments.length} balasan</p></div></div>{queue.comments.length ? queue.comments.map((comment) => <div className="community-admin-item" key={comment.id}><div><strong>{comment.authorName} membalas:</strong><blockquote>{comment.parentBody}</blockquote><p>{comment.body}</p></div><div><button className="button button-soft" onClick={() => void moderate("comments", comment.id, "rejected")}>Tolak</button><button className="button button-primary" onClick={() => void moderate("comments", comment.id, "approved")}>Setujui</button></div></div>) : <div className="table-empty">Tidak ada balasan menunggu.</div>}</section>
+    <section className="admin-panel review-section"><div className="panel-head"><div><h2>Laporan komunitas</h2><p>{queue.reports.length} laporan terbuka</p></div></div>{queue.reports.length ? queue.reports.map((report) => <div className="community-admin-item" key={report.id}><div><strong>{report.reason} · {report.subjectType}</strong><p>{report.body ?? "Konten sudah dihapus"}</p><small>{report.details || "Tanpa keterangan tambahan"} · {new Date(report.createdAt).toLocaleString("id-ID")}</small></div><div><button className="button button-soft" onClick={() => void reviewReport(report.id, false)}>Tutup laporan</button><button className="button button-danger" onClick={() => void reviewReport(report.id, true)}>Sembunyikan konten</button></div></div>) : <div className="table-empty">Tidak ada laporan terbuka.</div>}</section>
+  </>}</>;
 }
 
 function PathPage() {
@@ -210,8 +442,12 @@ function PathPage() {
 
 function LessonPage() {
   const { unitId = "" } = useParams();
+  const [searchParams] = useSearchParams();
+  const requestedActivityId = searchParams.get("activity");
   const [unit, setUnit] = useState<Unit | null>(null);
   const [items, setItems] = useState<UnitItem[]>([]);
+  const [activities, setActivities] = useState<LessonActivity[]>([]);
+  const [lessonExtras, setLessonExtras] = useState<LessonExtras>({ grammar: [], dialogueTurns: [], storyParagraphs: [] });
   const [phase, setPhase] = useState(0);
   const [writingCharacters, setWritingCharacters] = useState<Record<string, Array<{ id: string; hanzi: string; strokeCount: number; strokeDataStatus: string }>>>({});
   const [loadingCharacters, setLoadingCharacters] = useState(false);
@@ -220,7 +456,18 @@ function LessonPage() {
   const [score, setScore] = useState(0);
   const [highestPhase, setHighestPhase] = useState(0);
   const { data: currentSession } = useLearnerSession();
-  useEffect(() => { setUnit(null); setItems([]); void api<{ unit: Unit; items: UnitItem[] }>(`/units/${encodeURIComponent(unitId)}`).then((data) => { setUnit(data.unit); setItems(data.items); }).catch(() => { setUnit(null); setItems([]); }); }, [unitId]);
+  useEffect(() => {
+    setUnit(null); setItems([]); setActivities([]); setLessonExtras({ grammar: [], dialogueTurns: [], storyParagraphs: [] });
+    void api<{ unit: Unit; items: UnitItem[]; activities: LessonActivity[] } & LessonExtras>(`/units/${encodeURIComponent(unitId)}`).then((data) => {
+      setUnit(data.unit); setItems(data.items); setActivities(data.activities);
+      setLessonExtras({ grammar: data.grammar ?? [], dialogueTurns: data.dialogueTurns ?? [], storyParagraphs: data.storyParagraphs ?? [] });
+      const saved = data.activities.find((activity) => activity.id === requestedActivityId && activity.state !== "completed")
+        ?? data.activities.find((activity) => activity.state === "in_progress");
+      if (saved) {
+        setPhase(saved.ordinal); setHighestPhase(saved.ordinal); setQuestionIndex(saved.currentItemOrdinal); setSelectedAnswer(null);
+      }
+    }).catch(() => { setUnit(null); setItems([]); setActivities([]); });
+  }, [unitId, requestedActivityId]);
   useEffect(() => { setPhase(0); setHighestPhase(0); setQuestionIndex(0); setSelectedAnswer(null); setScore(0); setWritingCharacters({}); }, [unitId]);
   useEffect(() => {
     if (phase !== 2 || items.length === 0 || items.every((item) => item.placement_id in writingCharacters)) return;
@@ -242,26 +489,45 @@ function LessonPage() {
   const distractors = activeQuestion ? [...new Set(quizItems.filter((item) => item.placement_id !== activeQuestion.placement_id).map((item) => item.gloss).filter((gloss): gloss is string => Boolean(gloss) && gloss !== activeQuestion.gloss))].slice(0, 3) : [];
   const answerSlot = activeQuestion ? questionIndex % Math.min(4, distractors.length + 1) : 0;
   const answerOptions = activeQuestion ? [...distractors.slice(0, answerSlot), activeQuestion.gloss!, ...distractors.slice(answerSlot, answerSlot + 3 - answerSlot)] : [];
-  const advanceTo = (nextPhase: number) => { setHighestPhase((value) => Math.max(value, nextPhase)); setPhase(nextPhase); };
+  const persistActivityProgress = (activity: LessonActivity, state: "in_progress" | "completed", currentItemOrdinal = 0) => {
+    return api(`/activities/${encodeURIComponent(activity.id)}/progress`, { method: "POST", body: JSON.stringify({ state, currentItemOrdinal }) }).then(() => true).catch(() => false);
+  };
+  const currentActivity = activities.find((activity) => activity.ordinal === phase);
+  useEffect(() => {
+    if (currentActivity && currentActivity.state !== "completed") persistActivityProgress(currentActivity, "in_progress", phase === 3 ? questionIndex : 0);
+  }, [currentActivity?.id, currentActivity?.state, phase, questionIndex]);
+  useEffect(() => {
+    if (phase === 3 && activeQuestion === undefined && quizItems.length > 0 && currentActivity) persistActivityProgress(currentActivity, "completed", Math.max(0, quizItems.length - 1));
+  }, [phase, activeQuestion, quizItems.length, currentActivity?.id]);
+  const [savingProgress, setSavingProgress] = useState(false);
+  const advanceTo = async (nextPhase: number) => {
+    setSavingProgress(true);
+    if (currentActivity) {
+      const saved = await persistActivityProgress(currentActivity, "completed", phase === 3 ? Math.max(0, questionIndex - 1) : 0);
+      if (!saved) { setSavingProgress(false); return; }
+    }
+    setHighestPhase((value) => Math.max(value, nextPhase)); setPhase(nextPhase); setSavingProgress(false);
+  };
   const recordMeaningAttempt = (answer: string) => {
     if (!activeQuestion?.vocabulary_id || !currentSession?.user.id || selectedAnswer !== null) return;
     const correct = answer === activeQuestion.gloss;
     if (correct) setScore((value) => value + 1);
     setSelectedAnswer(answer);
     void saveAttempt({ contentType: "vocabulary", contentId: activeQuestion.vocabulary_id, readingId: activeQuestion.reading_id ?? undefined,
-      curriculumPlacementId: activeQuestion.placement_id, activityMode: "meaning", dimensions: { meaningRecall: correct ? "correct" : "needs_practice" }, engineVersion: "lesson-recall-v1" }, currentSession.user.id).catch(() => undefined);
+      curriculumPlacementId: activeQuestion.placement_id, activityId: activities.find((activity) => activity.activityKind === "comprehension")?.id,
+      skill: "comprehension", activityMode: "meaning", dimensions: { meaningRecall: correct ? "correct" : "needs_practice" }, engineVersion: "lesson-recall-v1" }, currentSession.user.id).catch(() => undefined);
   };
-  const phases = ["Kenali kata", "Pahami contoh", "Belajar menulis", "Uji ingatan"];
+  const phases = activities.length ? activities.map((activity) => activity.title) : ["Kenali kata", "Pahami contoh", "Belajar menulis", "Uji ingatan"];
   return <Protected><div className="page-wrap"><PageBack to="/paths" label="Semua jalur" /><PageTitle eyebrow={unit?.curriculum_name ?? "PELAJARAN"} title={unit?.title ?? "Pelajaran"} subtitle={unit?.description ?? "Ikuti langkahnya berurutan: kenali kata, pahami contoh, berlatih menulis, lalu uji ingatan."} />
     {items.length ? <>
-      <div className="lesson-stepper" role="group" aria-label="Langkah pelajaran">{phases.map((label, index) => <button key={label} type="button" className={`lesson-step ${phase === index ? "lesson-step-active" : ""} ${phase > index ? "lesson-step-done" : ""}`} aria-current={phase === index ? "step" : undefined} disabled={index > highestPhase} onClick={() => setPhase(index)}><span>{phase > index ? <Check size={14} /> : index + 1}</span>{label}</button>)}</div>
+      <div className="lesson-stepper" role="group" aria-label="Langkah pelajaran">{phases.map((label, index) => <button key={activities[index]?.id ?? label} type="button" className={`lesson-step ${phase === index ? "lesson-step-active" : ""} ${activities[index]?.state === "completed" || phase > index ? "lesson-step-done" : ""}`} aria-current={phase === index ? "step" : undefined} disabled={savingProgress || index > highestPhase} onClick={async () => { setSavingProgress(true); if (currentActivity) await persistActivityProgress(currentActivity, "in_progress", phase === 3 ? questionIndex : 0); setPhase(index); setSavingProgress(false); }}><span>{activities[index]?.state === "completed" || phase > index ? <Check size={14} /> : index + 1}</span>{label}</button>)}</div>
       <div className="lesson-progress-track" aria-label={`Langkah ${phase + 1} dari ${phases.length}`}><span style={{ width: `${((phase + 1) / phases.length) * 100}%` }} /></div>
       {phase === 0 && <section className="lesson-stage"><div className="lesson-stage-heading"><span className="tag">LANGKAH 1 · KENALI</span><h2>Kata yang akan kamu pelajari</h2><p>Dengarkan rekaman jika tersedia, baca pinyin, lalu buka detail untuk melihat penggunaan dan contoh.</p></div><div className="lesson-items">{items.map((item) => {
         const context = new URLSearchParams({ placementId: item.placement_id, unitId });
         const to = item.vocabulary_id ? `/word/${item.vocabulary_id}?${context}` : `/write/${item.character_id}?${context}`;
         return <article className="vocab-row lesson-vocab-row" key={item.placement_id}><span className="hanzi-thumb">{item.simplified_form ?? item.hanzi}</span><div><strong>{item.simplified_form ?? item.hanzi}</strong><small>{item.numbered_pinyin ?? "Pengucapan sedang ditinjau"} · {item.gloss ?? "Arti sedang ditinjau"}</small></div><AudioButton assetId={item.audio_id} text={item.simplified_form ?? item.hanzi ?? ""} /><Link className="icon-button" to={to} aria-label="Lihat detail kata dan contoh"><ChevronRight /></Link></article>;
       })}</div><button className="button button-primary lesson-next" onClick={() => advanceTo(1)}>Lanjut ke contoh <ArrowRight /></button></section>}
-      {phase === 1 && <section className="lesson-stage"><div className="lesson-stage-heading"><span className="tag">LANGKAH 2 · GUNAKAN</span><h2>Lihat kata dalam kalimat</h2><p>Perhatikan cara kata-kata ini dipakai dalam contoh berbahasa sehari-hari.</p></div>{items.some((item) => item.example_text) ? <div className="lesson-examples">{items.filter((item) => item.example_text).map((item) => <article className="lesson-example-card" key={item.placement_id}><div className="lesson-example-context"><span className="hanzi-thumb">{item.simplified_form ?? item.hanzi}</span><span>{item.gloss}</span></div><strong lang="zh-Hans">{item.example_text}</strong>{item.example_pinyin && <small>{item.example_pinyin}</small>}{item.example_translation && <p>{item.example_translation}</p>}</article>)}</div> : <div className="empty-card lesson-empty"><div className="empty-icon"><BookOpen /></div><h3>Contoh kalimat belum tersedia</h3><p>Pelajari dulu makna kata, lalu lanjutkan ke latihan menulis dan pengulangan.</p></div>}<button className="button button-primary lesson-next" onClick={() => advanceTo(2)}>Lanjut ke tulisan <ArrowRight /></button></section>}
+      {phase === 1 && <section className="lesson-stage"><div className="lesson-stage-heading"><span className="tag">LANGKAH 2 · GUNAKAN</span><h2>Lihat kata dalam kalimat</h2><p>Perhatikan polanya, ikuti percakapan, lalu baca contoh singkat. Pinyin dan arti ditampilkan bersama agar mudah dipahami.</p></div>{lessonExtras.grammar.length > 0 && <div className="scenario-section"><h3>Pola kalimat</h3>{lessonExtras.grammar.map((grammar) => <article className="grammar-card" key={grammar.id}><span className="tag">TATA BAHASA</span><h4>{grammar.title}</h4><strong lang="zh-Hans">{grammar.pattern}</strong><p>{grammar.explanation}</p>{grammar.usageNotes && <small>{grammar.usageNotes}</small>}</article>)}</div>}{items.some((item) => item.example_text) && <div className="lesson-examples">{items.filter((item) => item.example_text).map((item) => <article className="lesson-example-card" key={item.placement_id}><div className="lesson-example-context"><span className="hanzi-thumb">{item.simplified_form ?? item.hanzi}</span><span>{item.gloss}</span></div><strong lang="zh-Hans">{item.example_text}</strong>{item.example_pinyin && <small>{item.example_pinyin}</small>}{item.example_translation && <p>{item.example_translation}</p>}</article>)}</div>}{lessonExtras.dialogueTurns.length > 0 && <div className="scenario-section"><h3>{lessonExtras.dialogueTurns[0].dialogueTitle}</h3><div className="dialogue-list">{lessonExtras.dialogueTurns.map((turn) => <article className={`dialogue-turn dialogue-turn-${turn.speakerRole.toLowerCase()}`} key={turn.id}><div><span className="dialogue-speaker">{turn.speakerLabel}</span><strong lang="zh-Hans">{turn.simplifiedText}</strong><small>{formatPinyinJson(turn.pinyinJson)}</small><p>{turn.translation}</p><small className="device-audio-note">Suara Mandarin perangkat · hanya untuk latihan mendengar</small></div><AudioButton text={turn.simplifiedText} /></article>)}</div></div>}{lessonExtras.storyParagraphs.length > 0 && <div className="scenario-section"><h3>{lessonExtras.storyParagraphs[0].storyTitle}</h3>{lessonExtras.storyParagraphs.map((paragraph) => <article className="story-paragraph" key={paragraph.id}><strong lang="zh-Hans">{paragraph.simplifiedText}</strong><small>{formatPinyinJson(paragraph.pinyinJson)}</small><p>{paragraph.translation}</p><AudioButton text={paragraph.simplifiedText} /></article>)}</div>}{!items.some((item) => item.example_text) && lessonExtras.grammar.length === 0 && lessonExtras.dialogueTurns.length === 0 && lessonExtras.storyParagraphs.length === 0 && <div className="empty-card lesson-empty"><div className="empty-icon"><BookOpen /></div><h3>Contoh kalimat belum tersedia</h3><p>Pelajari dulu makna kata, lalu lanjutkan ke latihan menulis dan pengulangan.</p></div>}<button className="button button-primary lesson-next" disabled={savingProgress} onClick={() => void advanceTo(2)}>{savingProgress ? "Menyimpan kemajuan…" : "Lanjut ke tulisan"} <ArrowRight /></button></section>}
       {phase === 2 && <section className="lesson-stage"><div className="lesson-stage-heading"><span className="tag">LANGKAH 3 · TULIS</span><h2>Ikuti urutan guratan</h2><p>Buka karakter untuk melihat tutorial lengkap, lalu tulis dengan sentuhan atau stylus. Data guratan yang tidak tersedia tidak akan diganti dengan tebakan.</p></div>{loadingCharacters ? <div className="empty-card lesson-empty"><div className="loader" /><p>Memuat karakter dalam pelajaran…</p></div> : <div className="lesson-character-grid">{items.flatMap((item) => (writingCharacters[item.placement_id] ?? []).map((character) => {
         const context = new URLSearchParams({ placementId: item.placement_id, unitId });
         return <Link className="lesson-character-card" key={`${item.placement_id}-${character.id}`} to={`/write/${character.id}?${context}`}><span>{character.hanzi}</span><small>{item.simplified_form ?? item.hanzi} · mulai menulis</small><strong>Ikuti urutan <ChevronRight size={15} /></strong></Link>;
@@ -276,15 +542,20 @@ function WordPage() {
   const [searchParams] = useSearchParams();
   const placementId = searchParams.get("placementId");
   const unitId = searchParams.get("unitId");
+  const readingId = searchParams.get("readingId");
+  const fromReview = searchParams.get("from") === "review";
   const writeParams = new URLSearchParams();
   if (placementId) writeParams.set("placementId", placementId);
   if (unitId) writeParams.set("unitId", unitId);
+  if (readingId) writeParams.set("readingId", readingId);
+  if (fromReview) writeParams.set("from", "review");
   writeParams.set("returnWordId", entryId);
   const writeQuery = `?${writeParams}`;
   const [entry, setEntry] = useState<{ entry: { id: string; simplifiedForm: string; partOfSpeech?: string }; readings: Array<{ id: string; contextText: string; pinyin: string; numberedPinyin: string; audioId?: string }>; senses: Array<{ id: string; text: string; usageLabel?: string }>; examples: Array<{ id: string; simplifiedText: string; numberedPinyin: string; translation: string }>; characters: Array<{ id: string; hanzi: string; strokeCount: number; strokeDataStatus: string }> } | null>(null);
   useEffect(() => { void api<typeof entry>(`/vocabulary/${encodeURIComponent(entryId)}`).then(setEntry).catch(() => setEntry(null)); }, [entryId]);
   if (!entry) return <Protected><div className="page-wrap"><PageBack /><EmptyContent message="Kata ini belum tersedia untuk dipelajari." /></div></Protected>;
-  return <Protected><div className="page-wrap word-page"><PageBack to={unitId ? `/unit/${unitId}` : "/paths"} /><div className="word-hero"><span className="tag">KATA DALAM KONTEKS</span><h1>{entry.entry.simplifiedForm}</h1><p>{entry.readings[0]?.numberedPinyin ?? "Pelafalan sedang ditinjau"}</p><AudioButton assetId={entry.readings[0]?.audioId} text={entry.entry.simplifiedForm} prominent /></div>
+  const activeReading = entry.readings.find((reading) => reading.id === readingId) ?? entry.readings[0];
+  return <Protected><div className="page-wrap word-page"><PageBack to={fromReview ? "/review" : unitId ? `/unit/${unitId}` : "/paths"} /><div className="word-hero"><span className="tag">KATA DALAM KONTEKS</span><h1>{entry.entry.simplifiedForm}</h1><p>{activeReading?.numberedPinyin ?? "Pelafalan sedang ditinjau"}</p><AudioButton assetId={activeReading?.audioId} text={entry.entry.simplifiedForm} prominent /></div>
     <section className="detail-card"><h2>Makna</h2>{entry.senses.length ? entry.senses.map((sense) => <p key={sense.id}>{sense.text}<span className="muted"> {sense.usageLabel}</span></p>) : <InlineNotice>Terjemahan bahasa Indonesia belum disetujui.</InlineNotice>}</section>
     <section className="detail-card"><h2>Karakter penyusun</h2><div className="character-strip">{entry.characters.map((char) => <Link key={char.id} to={`/write/${char.id}${writeQuery}`}><strong>{char.hanzi}</strong><small>{char.strokeCount} guratan</small></Link>)}</div></section>
     {entry.examples.length > 0 && <section className="detail-card"><h2>Contoh kalimat</h2>{entry.examples.map((example) => <div className="example" key={example.id}><strong>{example.simplifiedText}</strong><small>{example.numberedPinyin}</small><p>{example.translation}</p></div>)}</section>}
@@ -326,7 +597,9 @@ function GuidedWritingPage() {
       const response = await fetch(`/api/v1/strokes/${encodeURIComponent(characterId)}`, { credentials: "include" });
       if (!response.ok) throw new Error("stroke data unavailable");
       const data = await response.json() as { strokes: string[]; medians: number[][][]; radStrokes?: number[] };
-      writer = HanziWriter.create(host, character.hanzi, {
+      const { default: HanziWriterLibrary } = await import("hanzi-writer");
+      if (cancelled) return;
+      writer = HanziWriterLibrary.create(host, character.hanzi, {
         width: Math.min(500, Math.max(260, Math.min(window.innerWidth - 56, window.innerHeight - 220))),
         height: Math.min(500, Math.max(260, Math.min(window.innerWidth - 56, window.innerHeight - 220))),
         padding: 20,
@@ -410,7 +683,8 @@ function FreehandPage() {
   const requestRef = useRef(0);
   const strokesRef = useRef<Array<Array<[number, number]>>>([]);
   const currentStrokeRef = useRef<Array<[number, number]> | null>(null);
-  const simplify = useRef(OpenCC.Converter({ from: "t", to: "cn" }));
+  const simplify = useRef<(value: string) => string>((value) => value);
+  const [normalizerReady, setNormalizerReady] = useState(false);
   const [recognizerState, setRecognizerState] = useState<"loading" | "ready" | "unavailable">("loading");
   const [candidates, setCandidates] = useState<Array<{ hanzi: string; score: number }>>([]);
   const [strokeCount, setStrokeCount] = useState(0);
@@ -419,6 +693,15 @@ function FreehandPage() {
   const [notice, setNotice] = useState("");
   const points = useRef(false);
   useEffect(() => {
+    let active = true;
+    void import("opencc-js/t2cn").then(({ default: OpenCC }) => {
+      simplify.current = OpenCC.Converter({ from: "t", to: "cn" });
+      if (active) setNormalizerReady(true);
+    }).catch(() => { if (active) { setRecognizerState("unavailable"); setNotice("Pengenal karakter sederhana belum dapat dimuat."); } });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
+    if (!normalizerReady) return;
     if (!("Worker" in window) || !("WebAssembly" in window)) { setRecognizerState("unavailable"); return; }
     const worker = new Worker("/workers/hanzi-recognition-worker.js");
     workerRef.current = worker;
@@ -441,7 +724,7 @@ function FreehandPage() {
     worker.onerror = () => { setRecognizerState("unavailable"); setRecognizing(false); setNotice("Pengenal lokal tidak dapat dimuat pada perangkat ini."); };
     worker.postMessage({ type: "initialize" });
     return () => { worker.terminate(); workerRef.current = null; };
-  }, []);
+  }, [normalizerReady]);
   const setCanvas = (canvas: HTMLCanvasElement | null) => {
     if (!canvas || canvasRef.current) return;
     canvasRef.current = canvas;
@@ -506,9 +789,13 @@ function FreehandPage() {
 }
 
 function ReviewPage() {
-  const [items, setItems] = useState<Array<{ contentType: string; contentId: string; dueAt: string; word: string | null; character: string | null }>>([]);
-  useEffect(() => { void api<{ items: typeof items }>("/reviews").then((data) => setItems(data.items)).catch(() => setItems([])); }, []);
-  return <Protected><div className="page-wrap"><PageTitle eyebrow="ULANGI" title="Pengulangan hari ini" subtitle="Materi akan dijadwalkan ulang berdasarkan hasil latihanmu." />{items.length ? <div className="unit-list">{items.map((item) => <div key={`${item.contentType}-${item.contentId}`} className="unit-row"><span className="hanzi-thumb">{item.word ?? item.character}</span><span className="unit-copy"><strong>{item.word ?? item.character}</strong><small>{item.contentType === "character" ? "Karakter" : "Kosakata"}</small></span><Link to={item.contentType === "character" ? `/write/${item.contentId}` : `/word/${item.contentId}`} className="button button-primary">Mulai</Link></div>)}</div> : <div className="empty-card"><div className="empty-icon"><RotateCcw /></div><h3>Belum ada materi untuk diulang</h3><p>Setelah belajar materi yang sudah terbit, pengulangan akan muncul sesuai jadwalmu.</p><Link to="/paths" className="button button-primary">Pilih pelajaran</Link></div>}</div></Protected>;
+  const [skill, setSkill] = useState("all");
+  const [items, setItems] = useState<Array<{ contentType: string; contentId: string; dueAt: string; word: string | null; character: string | null; readingId: string | null; skill: string }>>([]);
+  const skillNames: Record<string, string> = { listening: "Menyimak", speaking: "Berbicara", reading: "Membaca", writing: "Menulis", grammar: "Tata bahasa", vocabulary: "Kosakata", comprehension: "Pemahaman" };
+  useEffect(() => { void api<{ items: typeof items }>(`/reviews?skill=${skill === "all" ? "" : skill}`).then((data) => setItems(data.items)).catch(() => setItems([])); }, [skill]);
+  return <Protected><div className="page-wrap"><PageTitle eyebrow="PUSAT ULASAN" title="Ulangi yang sudah kamu pelajari" subtitle="Jadwal tiap keterampilan terpisah. Materi akan kembali sesuai kebutuhan, bukan sebagai tumpukan kartu kata." />
+    <div className="review-filters" aria-label="Filter keterampilan"><button className={skill === "all" ? "filter-active" : ""} onClick={() => setSkill("all")}>Semua</button>{Object.entries(skillNames).map(([key, name]) => <button key={key} className={skill === key ? "filter-active" : ""} onClick={() => setSkill(key)}>{name}</button>)}</div>
+    {items.length ? <div className="unit-list">{items.map((item) => <div key={`${item.contentType}-${item.contentId}-${item.readingId ?? ""}-${item.skill}`} className="unit-row"><span className="hanzi-thumb">{item.word ?? item.character}</span><span className="unit-copy"><strong>{item.word ?? item.character}</strong><small>{item.contentType === "character" ? "Karakter" : "Kosakata"} · {skillNames[item.skill] ?? item.skill}</small></span><Link to={item.contentType === "character" ? `/write/${item.contentId}` : `/word/${item.contentId}?${new URLSearchParams({ ...(item.readingId ? { readingId: item.readingId } : {}), from: "review" })}`} className="button button-primary">Latih lagi</Link></div>)}</div> : <div className="empty-card"><div className="empty-icon"><RotateCcw /></div><h3>{skill === "all" ? "Belum ada materi untuk diulang" : `Belum ada ${skillNames[skill]?.toLowerCase() ?? "materi"} yang waktunya diulang`}</h3><p>Setelah berlatih, jadwal ulasan per keterampilan akan muncul di sini.</p><Link to="/paths" className="button button-primary">Pilih pelajaran</Link></div>}</div></Protected>;
 }
 
 function SummaryPage() { return <Protected><div className="summary-page"><div className="summary-star"><Sparkles /></div><span className="tag">SESI SELESAI</span><h1>Bagus sekali!</h1><p>Latihanmu tersimpan di akun. Jika sedang offline, aplikasi akan menyinkronkannya saat koneksi kembali.</p><Link className="button button-primary" to="/">Kembali ke beranda <ArrowRight /></Link></div></Protected>; }
@@ -544,9 +831,11 @@ function ProfilePage() {
 }
 
 function CreditsPage() {
+  const [audioAssets, setAudioAssets] = useState<Array<{ id: string; text: string; pinyin: string; creator: string; recordedBy?: string; sourcePage: string; licenseUrl: string; license: string; speakerProfile?: string }> | null>(null);
+  useEffect(() => { void import("../../content/audio-assets-manifest.json").then(({ default: manifest }) => setAudioAssets(manifest.assets)); }, []);
   return <div className="page-wrap"><PageBack to="/profile" /><PageTitle eyebrow="KREDIT & LISENSI" title="Sumber materi dan teknologi" subtitle="Materi terbuka mempertahankan atribusi dan lisensinya sendiri; lisensi aplikasi tidak menggantikannya." />
     <section className="detail-card"><h2>Data urutan guratan</h2><p>Karakter awal memakai Hanzi Writer Data 2.0.1 dari Make Me a Hanzi, yang menyatakan data guratan berasal dari glyph Arphic. Data ini berlisensi Arphic Public License dan bukan klaim bahwa setiap urutan telah disahkan Kementerian Pendidikan Tiongkok.</p><p><a href="https://github.com/chanind/hanzi-writer-data" target="_blank" rel="noreferrer">Repositori Hanzi Writer Data</a> · <a href="https://github.com/chanind/hanzi-writer-data/blob/master/ARPHICPL.TXT" target="_blank" rel="noreferrer">Teks Arphic Public License</a></p></section>
-    <section className="detail-card"><h2>Rekaman Mandarin</h2><p>Sebanyak {audioAssetManifest.assets.length} kata memiliki rekaman asli yang sumber dan lisensinya sudah dicatat. Jika suatu kata belum punya rekaman tepat, tombol audio memakai suara Mandarin sederhana (zh-CN) yang tersedia secara lokal di perangkat. Suara perangkat tidak dikirim ke server, bukan rekaman manusia, dan dapat berbeda antarperangkat; bila belum tersedia, pasang suara Mandarin di pengaturan perangkat. Kami tidak memakai suara jarak jauh berbayar atau menggabungkan potongan suku kata.</p>{audioAssetManifest.assets.map((asset) => <p key={asset.id}><strong>“{asset.text} / {asset.pinyin}”</strong> — {asset.creator}{asset.recordedBy ? `, direkam oleh ${asset.recordedBy}` : ""} · <a href={asset.sourcePage} target="_blank" rel="noreferrer">file sumber</a> · <a href={asset.licenseUrl} target="_blank" rel="noreferrer">{asset.license}</a>{asset.speakerProfile ? <> · <a href={asset.speakerProfile} target="_blank" rel="noreferrer">profil penutur</a></> : null}</p>)}</section>
+    <section className="detail-card"><h2>Rekaman Mandarin</h2><p>{audioAssets ? `Sebanyak ${audioAssets.length} berkas rekaman manusia memiliki sumber dan lisensinya tercatat.` : "Memuat daftar rekaman dan atribusinya…"} Jika suatu kata belum punya rekaman tepat, tombol audio memakai suara Mandarin sederhana (zh-CN) yang tersedia secara lokal di perangkat. Suara perangkat tidak dikirim ke server, bukan rekaman manusia, dan dapat berbeda antarperangkat; bila belum tersedia, pasang suara Mandarin di pengaturan perangkat. Kami tidak memakai suara jarak jauh berbayar atau menggabungkan potongan suku kata.</p>{audioAssets?.map((asset) => <p key={asset.id}><strong>“{asset.text} / {asset.pinyin}”</strong> — {asset.creator}{asset.recordedBy ? `, direkam oleh ${asset.recordedBy}` : ""} · <a href={asset.sourcePage} target="_blank" rel="noreferrer">file sumber</a> · <a href={asset.licenseUrl} target="_blank" rel="noreferrer">{asset.license}</a>{asset.speakerProfile ? <> · <a href={asset.speakerProfile} target="_blank" rel="noreferrer">profil penutur</a></> : null}</p>)}</section>
     <section className="detail-card"><h2>Materi & struktur HSK</h2><p>Materi resmi memang tersedia: situs ujian HSK memuat kerangka, silabus, contoh soal, dan bahan ujian. Yang belum dipastikan adalah izin untuk menyalin serta menerbitkan ulang daftar dan teks lengkap itu di aplikasi terbuka ini. Karena itu, latihan HSK yang tersedia sekarang ditulis khusus untuk aplikasi dan tidak diklaim sebagai daftar resmi HSK.</p><p><a href="https://www.chinesetest.cn/hsk" target="_blank" rel="noreferrer">Kerangka HSK resmi</a> · <a href="https://admin.chinesetest.cn/godownload.do" target="_blank" rel="noreferrer">Pusat unduhan resmi HSK</a> · <a href="https://www.chinesetest.cn/legal-notice" target="_blank" rel="noreferrer">Ketentuan situs CTI</a></p><p>Struktur enam tingkat HSK 2.0 dan tiga tahap/sembilan tingkat HSK Baru dipakai sebagai navigasi. Kosakata, contoh kalimat, serta terjemahan baru tetap dicatat sebagai konten asli berbahasa Indonesia. Tingkat pemula sekarang berisi 20 materi buatan aplikasi pada kedua jalur.</p></section>
     <section className="detail-card"><h2>Teknologi</h2><ul><li>React, React Router, TypeScript, Vite, Hono, Better Auth, Zod, IndexedDB, dan Cloudflare Workers/D1.</li><li>Hanzi Writer untuk animasi dan latihan guratan; library-nya MIT, data karakternya memakai lisensi terpisah.</li><li>Hanzi Lookup WASM untuk saran pengenalan tulisan tangan lokal; kodenya LGPL-3.0 dan data bentuk tertanam berlisensi Arphic Public License.</li><li>OpenCC JS untuk normalisasi kandidat tradisional menjadi sederhana; source, data, dan lisensinya dicatat di <code>THIRD_PARTY_NOTICES.md</code> pada repositori.</li></ul></section>
     <section className="detail-card"><h2>Ilustrasi</h2><p>Maskot pendamping belajar di halaman utama dibuat untuk proyek ini menggunakan alat pembuat gambar OpenAI pada 25 September 2026. Ilustrasi tidak memuat aset atau karakter berlisensi pihak lain.</p></section>
@@ -604,7 +893,7 @@ function AdminFrame({ user, isPending }: { user: SessionUser | null; isPending: 
   const { data } = useLearnerSession();
   if (isPending) return <div className="centered-page"><div className="loader" /></div>;
   if (!user) return <AuthPage mode="login" redirectTo="/admin" />;
-  return <div className="admin-frame"><aside className={`admin-sidebar ${open ? "sidebar-open" : ""}`}><Link className="brand" to="/admin"><span className="brand-mark">文</span><span>Belajar <small>ADMIN</small></span></Link><span className="sidebar-label">RUANG KERJA</span><NavLink to="/admin" end><Activity /> Ringkasan</NavLink><NavLink to="/admin/learners"><UserRound /> Pembelajar</NavLink><NavLink to="/admin/content"><BookOpen /> Konten & Audio</NavLink><NavLink to="/admin/audit"><ShieldCheck /> Audit & Privasi</NavLink><div className="sidebar-spacer" /><Link to="/" className="sidebar-exit"><ArrowLeft /> Aplikasi belajar</Link><button className="sidebar-user" onClick={() => void authClient.signOut()}><span className="avatar">{data?.user.name.slice(0, 1).toUpperCase()}</span><span>{data?.user.name}<small>Keluar dari admin</small></span><LogOut /></button></aside><main className="admin-content"><header className="admin-topbar"><button className="icon-button mobile-admin-menu" aria-label="Buka menu" onClick={() => setOpen((value) => !value)}><Menu /></button><span>Ruang pengelola</span><span className="admin-account"><span className="status-dot" />Terkoneksi</span></header><div className="admin-page"><Outlet /></div></main>{open && <button className="sidebar-scrim" aria-label="Tutup menu" onClick={() => setOpen(false)} />}</div>;
+  return <div className="admin-frame"><aside className={`admin-sidebar ${open ? "sidebar-open" : ""}`}><Link className="brand" to="/admin"><span className="brand-mark">文</span><span>Belajar <small>ADMIN</small></span></Link><span className="sidebar-label">RUANG KERJA</span><NavLink to="/admin" end><Activity /> Ringkasan</NavLink><NavLink to="/admin/learners"><UserRound /> Pembelajar</NavLink><NavLink to="/admin/content"><BookOpen /> Konten & Audio</NavLink><NavLink to="/admin/community"><MessageCircle /> Komunitas</NavLink><NavLink to="/admin/audit"><ShieldCheck /> Audit & Privasi</NavLink><div className="sidebar-spacer" /><Link to="/" className="sidebar-exit"><ArrowLeft /> Aplikasi belajar</Link><button className="sidebar-user" onClick={() => void authClient.signOut()}><span className="avatar">{data?.user.name.slice(0, 1).toUpperCase()}</span><span>{data?.user.name}<small>Keluar dari admin</small></span><LogOut /></button></aside><main className="admin-content"><header className="admin-topbar"><button className="icon-button mobile-admin-menu" aria-label="Buka menu" onClick={() => setOpen((value) => !value)}><Menu /></button><span>Ruang pengelola</span><span className="admin-account"><span className="status-dot" />Terkoneksi</span></header><div className="admin-page"><Outlet /></div></main>{open && <button className="sidebar-scrim" aria-label="Tutup menu" onClick={() => setOpen(false)} />}</div>;
 }
 
 function AdminOverview() {
@@ -628,6 +917,9 @@ function AdminLearnerPage() {
     learner: { name: string; email: string; createdAt: string; daily_goal_minutes: number };
     progress: Array<{ contentType: string; contentId: string; contentLabel: string | null; attempts: number; correct: number; lastSeenAt: string; dimensions: string }>;
     curriculumProgress: Array<{ curriculumName: string; curriculumVersion: string; unitTitle: string; levelNumber: number | null; stageName: string | null; attempts: number; passed: number; needsPractice: number; uncertain: number; notAssessed: number; itemsPractised: number; lastSeenAt: string }>;
+    skillProgress: Array<{ skill: string; attempts: number; passed: number; uncertain: number; needsPractice: number; itemsPractised: number; lastSeenAt: string | null }>;
+    activityProgress: Array<{ id: string; title: string; activityKind: string; unitTitle: string; levelNumber: number | null; curriculumName: string; state: string; currentItemOrdinal: number; updatedAt: string | null; completedAt: string | null; itemCount: number }>;
+    placements: Array<{ id: string; assessmentVersion: string; answered: number; correct: number; recommendation: string; explanation: string; completedAt: string }>;
     activity: Array<{ day: string; attempts: number }>;
     freehand: Array<{ hanzi: string; codePoint: string; engineId: string; candidateRank: number; occurredAt: string }>;
   } | null>(null);
@@ -637,6 +929,9 @@ function AdminLearnerPage() {
     <div className="learner-admin-hero"><div className="profile-avatar">{data.learner.name.slice(0, 1)}</div><div><strong>{data.learner.email}</strong><small>Bergabung {new Date(data.learner.createdAt).toLocaleDateString("id-ID")} · target {data.learner.daily_goal_minutes} menit / hari</small></div></div>
     <div className="admin-kpi-grid"><AdminKpi icon={<BookOpen />} label="Materi dipelajari" value={data.progress.length} /><AdminKpi icon={<Activity />} label="Latihan tersimpan" value={data.progress.reduce((sum, item) => sum + item.attempts, 0)} /><AdminKpi icon={<Clock3 />} label="Hari aktif tercatat" value={data.activity.length} /></div>
     <div className="admin-panel individual-progress"><div className="panel-head"><div><h2>Kemajuan menurut jalur belajar</h2><p>Latihan ditautkan ke jalur dan unit asal. “Lolos” berarti semua dimensi yang dinilai pada sesi itu lulus.</p></div></div>{data.curriculumProgress.length ? data.curriculumProgress.map((item) => <div className="progress-row" key={`${item.curriculumName}-${item.unitTitle}`}><span className="unit-number">{item.levelNumber ?? "日"}</span><div><strong>{item.curriculumName} · {item.stageName ? `${item.stageName} · ` : ""}{item.unitTitle}</strong><small>{item.curriculumVersion} · {item.itemsPractised} materi · {item.attempts} sesi · terakhir {item.lastSeenAt ? new Date(item.lastSeenAt).toLocaleDateString("id-ID") : "Belum tercatat"}</small><small>{item.passed} lolos · {item.needsPractice} perlu latihan · {item.uncertain} belum pasti · {item.notAssessed} belum dinilai</small></div><span className="progress-score">{item.passed}/{item.attempts}</span></div>) : <div className="table-empty">Belum ada latihan yang terhubung dengan unit belajar.</div>}</div>
+    <div className="admin-panel individual-progress"><div className="panel-head"><div><h2>Kemajuan per keterampilan</h2><p>Mendengar, berbicara, membaca, menulis, tata bahasa, dan pemahaman disimpan terpisah; rekaman suara mentah tidak disimpan.</p></div></div>{data.skillProgress.length ? <div className="skill-progress-grid">{data.skillProgress.map((item) => <article className="skill-progress-card" key={item.skill}><div><strong>{({ listening: "Menyimak", speaking: "Berbicara", reading: "Membaca", writing: "Menulis", grammar: "Tata bahasa", vocabulary: "Kosakata", comprehension: "Pemahaman" } as Record<string, string>)[item.skill] ?? item.skill}</strong><span>{item.itemsPractised} materi · {item.attempts} latihan</span></div><b>{item.passed}/{item.attempts}</b><small>{item.needsPractice} perlu diulang · {item.uncertain} belum yakin{item.lastSeenAt ? ` · ${new Date(item.lastSeenAt).toLocaleDateString("id-ID")}` : ""}</small></article>)}</div> : <div className="table-empty">Belum ada hasil yang tercatat menurut keterampilan.</div>}</div>
+    <div className="admin-panel individual-progress"><div className="panel-head"><div><h2>Aktivitas kursus</h2><p>Kelanjutan tiap tahap disimpan di server untuk dilanjutkan kembali di perangkat lain.</p></div></div>{data.activityProgress.length ? data.activityProgress.map((item) => <div className="progress-row" key={item.id}><span className={`activity-state activity-state-${item.state}`}>{item.state === "completed" ? <Check size={15} /> : item.state === "in_progress" ? <Clock3 size={15} /> : <BookOpen size={15} />}</span><div><strong>{item.curriculumName} · {item.unitTitle} · {item.title}</strong><small>{item.activityKind} · {item.state === "completed" ? "Selesai" : item.state === "in_progress" ? `Sedang berlangsung · butir ${item.currentItemOrdinal + 1}${item.itemCount ? ` dari ${item.itemCount}` : ""}` : "Belum dimulai"}{item.updatedAt ? ` · ${new Date(item.updatedAt).toLocaleString("id-ID")}` : ""}</small></div><span className="progress-score">{item.state === "completed" ? "✓" : item.itemCount ? `${Math.min(item.currentItemOrdinal, item.itemCount)}/${item.itemCount}` : "—"}</span></div>) : <div className="table-empty">Belum ada aktivitas kursus yang dimulai.</div>}</div>
+    <div className="admin-panel individual-progress"><div className="panel-head"><div><h2>Diagnosis titik awal</h2><p>Saran terakhir dari penilaian buatan aplikasi; ini bukan hasil resmi HSK.</p></div></div>{data.placements.length ? data.placements.map((item) => <div className="progress-row" key={item.id}><span className="activity-state"><Sparkles size={15} /></span><div><strong>{item.correct}/{item.answered} · {({ foundation: "Mulai dari dasar", elementary: "Dasar dengan tantangan", developing: "Siap mencoba materi lanjutan" } as Record<string, string>)[item.recommendation] ?? item.recommendation}</strong><small>{item.explanation} · {new Date(item.completedAt).toLocaleString("id-ID")}</small></div></div>) : <div className="table-empty">Belum ada penilaian titik awal.</div>}</div>
     <div className="admin-panel individual-progress"><div className="panel-head"><div><h2>Kemajuan per materi</h2><p>Ringkasan hasil tersimpan; jejak pena mentah tidak disimpan.</p></div></div>{data.progress.length ? data.progress.map((item) => <div className="progress-row" key={`${item.contentType}-${item.contentId}`}><span className="hanzi-thumb">{item.contentLabel?.slice(0, 1) ?? (item.contentId.startsWith("unicode:") ? item.contentId.slice(8, 9) : item.contentType === "character" ? "字" : "词")}</span><div><strong>{item.contentType === "character" ? "Karakter" : "Kosakata"} · {item.contentLabel ?? item.contentId}</strong><small>{item.attempts} latihan · terakhir {item.lastSeenAt ? new Date(item.lastSeenAt).toLocaleDateString("id-ID") : "Belum tercatat"}</small></div><span className="progress-score">{item.correct}/{item.attempts}</span></div>) : <div className="table-empty">Belum ada aktivitas tersinkron.</div>}</div>
     <div className="admin-panel individual-progress"><div className="panel-head"><div><h2>Karakter bebas dikonfirmasi</h2><p>Hanya karakter yang dipilih pembelajar setelah melihat kandidat; tidak ada goresan mentah.</p></div></div>{data.freehand.length ? data.freehand.map((item, index) => <div className="progress-row" key={`${item.codePoint}-${item.occurredAt}-${index}`}><span className="hanzi-thumb">{item.hanzi}</span><div><strong>{item.hanzi} · {item.codePoint}</strong><small>{item.engineId} · kandidat nomor {item.candidateRank} · {new Date(item.occurredAt).toLocaleString("id-ID")}</small></div></div>) : <div className="table-empty">Belum ada konfirmasi pengenalan bebas.</div>}</div>
   </>}</>;
@@ -709,7 +1004,8 @@ function EmptyContent({ message }: { message: string }) { return <div className=
 function NotFound() { return <div className="auth-required"><h1>Halaman tidak ditemukan</h1><Link className="button button-primary" to="/">Kembali</Link></div>; }
 
 async function saveAttempt(attempt: Omit<Parameters<typeof enqueueAttempt>[0], "createdAtClient">, ownerUserId: string) {
-  await enqueueAttempt({ ...attempt, createdAtClient: new Date().toISOString() }, ownerUserId);
+  const skill = attempt.skill ?? (attempt.activityMode === "listen" ? "listening" : attempt.activityMode === "record_compare" ? "speaking" : attempt.activityMode === "guided_writing" || attempt.activityMode === "freehand_writing" ? "writing" : "comprehension");
+  await enqueueAttempt({ ...attempt, skill, createdAtClient: new Date().toISOString() }, ownerUserId);
   void syncOutbox(ownerUserId).catch(() => undefined);
 }
 

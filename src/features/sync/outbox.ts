@@ -5,7 +5,9 @@ export interface AttemptPayload {
   contentId: string;
   readingId?: string;
   curriculumPlacementId?: string;
-  activityMode: "listen" | "meaning" | "guided_writing" | "freehand_writing";
+  activityId?: string;
+  skill?: "listening" | "speaking" | "reading" | "writing" | "grammar" | "vocabulary" | "comprehension";
+  activityMode: "listen" | "record_compare" | "meaning" | "guided_writing" | "freehand_writing";
   dimensions: Record<string, string>;
   engineVersion?: string;
   createdAtClient: string;

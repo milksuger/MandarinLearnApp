@@ -17,28 +17,30 @@ Work from durable product/domain decisions toward visible navigation, then ship 
 
 ## Phase 2 — lesson experience
 
-- [ ] Model reusable lesson activities and ordered scenario content with additive migrations.
-- [ ] Build a predictable unit flow: objective, vocabulary/grammar, dialogue/story, skill practice, comprehension, scenario output, summary.
-- [ ] Record each outcome against content/reading/skill and source placement; preserve idempotent sync.
-- [ ] Make the learner resume at the correct activity after navigation, refresh, or another device.
+- [x] Model reusable lesson activities and ordered scenario content with additive migrations.
+- [x] Build a predictable unit flow for objectives, vocabulary, examples, grammar, dialogue, short stories, guided writing, comprehension and a result summary.
+- [x] Record learning outcomes against content/reading/skill and source placement; preserve idempotent sync.
+- [x] Make the learner resume at the saved activity cursor after navigation, refresh, or another device.
+- [ ] Add an open-ended scenario response task with a suitable no-cost, non-automated feedback method.
 
 ## Phase 3 — course depth and placement
 
-- [ ] Add optional Pinyin foundations and an app-authored placement check with an explainable recommendation.
-- [ ] Expand original daily-life scenarios and HSK-aligned (not official) content through staged authored releases.
-- [ ] Add content validation, localization, audio completeness and provenance gates to publishing.
+- [x] Add optional Pinyin foundations with tone contours and licensed example recordings.
+- [x] Add an app-authored placement check with an explainable recommendation; label it as non-official and persist the result.
+- [x] Expand original daily-life scenarios and HSK-aligned (not official) content through staged authored releases.
+- [ ] Add automated content validation, localization, audio completeness and provenance gates to publishing.
 
 ## Phase 4 — independent learning areas
 
-- [ ] Build Practice by skill using shared content IDs and distinct assessment dimensions.
-- [ ] Upgrade Review to filters for vocabulary, readings, errors, courses and skills.
-- [ ] Build Discover collections for expressions, grammar, dialogues, stories and short themes.
-- [ ] Design and implement Talk moderation, reporting, blocking and retention before opening community access.
+- [x] Build Practice by skill using shared content IDs and distinct assessment dimensions (writing, speaking self-record/compare, comprehension, handwriting and review).
+- [x] Upgrade Review with skill filters and shared vocabulary/reading IDs.
+- [x] Build Discover collections for words, grammar, dialogues and stories.
+- [x] Design and implement Talk moderation, reporting, blocking and rate limits before opening community access.
 
 ## Phase 5 — admin and operations alignment
 
-- [ ] Extend audited individual progress to skill/activity and placement views.
-- [ ] Add lesson/activity provenance and completeness controls to the admin content workflow.
+- [x] Extend audited individual progress to skill/activity and placement views.
+- [x] Add lesson/activity provenance and completeness context to the admin content workflow.
 - [ ] Monitor free-tier use, queue health, sync failures, media integrity, and recognition abstentions.
 
 ## Phase 6 — release readiness

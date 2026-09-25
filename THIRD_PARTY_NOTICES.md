@@ -187,6 +187,8 @@ The 262 simplified character files in `public/media/strokes/` are copied unchang
 
 The September 2026 course expansion in [`content/course-expansion-2026-09.json`](content/course-expansion-2026-09.json) contains project-authored simplified-Chinese examples, Indonesian glosses, and lesson sequencing. It is offered under **CC BY 4.0**. Attribution: MandarinLearnApp contributors, “MandarinLearnApp original Indonesian beginner course expansion,” version 1.0.0. HSK level numbers are used for app navigation; the included lessons are not copied from official HSK word lists or syllabus text. See [`docs/content-data.md`](docs/content-data.md) for the data model, generation checks, and update process.
 
+The scenario lessons and optional starting-point assessment in [`content/scenario-content-2026-09.json`](content/scenario-content-2026-09.json), released by migrations `0024` and `0025`, contain original Mandarin dialogues, reading passages, grammar explanations, and Indonesian learning guidance. They are © MandarinLearnApp contributors and offered under **CC BY 4.0**. Attribution: MandarinLearnApp contributors, “MandarinLearnApp authored scenario lessons,” version 1.0.0. The placement assessment is an application diagnostic and is not an official HSK test, score, or certificate.
+
 ## Project-generated illustration
 
 `public/media/mascot/study-companion.webp` is a decorative study mascot generated for this project using OpenAI's image tool on 2026-09-25. It was generated from a text prompt without third-party visual references and is credited in the learner app's sources page.

@@ -1,0 +1,53 @@
+{
+  "metadata": {
+    "title": "MandarinLearnApp authored scenario lessons",
+    "version": "1.0.0",
+    "contributors": "MandarinLearnApp contributors",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "sourceId": "source-everyday-content-v1",
+    "notes": "Original content for Indonesian learners. App-authored HSK-aligned navigation is not an official syllabus or exam."
+  },
+  "grammar": [
+    { "id": "grammar-introduce-name", "slug": "introduce-name", "title": "Menyebutkan nama", "pattern": "我叫 + nama", "explanation": "Gunakan 叫 untuk menyebut nama yang biasa dipakai.", "usageNotes": "Untuk perkenalan awal, pola 我叫… terdengar alami. Nama asing dapat ditulis dengan huruf Latin bila belum memiliki nama Mandarin.", "unitId": "unit-daily-greetings" },
+    { "id": "grammar-ma-question", "slug": "yes-no-question-ma", "title": "Pertanyaan ya atau tidak", "pattern": "kalimat + 吗？", "explanation": "Tambahkan 吗 di akhir kalimat berita untuk mengubahnya menjadi pertanyaan ya atau tidak.", "usageNotes": "Kata-kata lain biasanya tetap berurutan. Jawaban dapat berupa 是/不是 atau jawaban singkat yang sesuai konteks.", "unitId": "unit-daily-greetings" },
+    { "id": "grammar-xiang-verb", "slug": "want-to-do", "title": "Mengungkapkan keinginan", "pattern": "subjek + 想 + kata kerja", "explanation": "想 sebelum kata kerja menyatakan ingin melakukan sesuatu.", "usageNotes": "想 juga dapat berarti berpikir atau merindukan pada konteks lain. Di sini artinya ditentukan oleh kata kerja setelahnya.", "unitId": "unit-daily-food" },
+    { "id": "grammar-family-you", "slug": "asking-family-size", "title": "Menanyakan jumlah anggota keluarga", "pattern": "你家有几个人？", "explanation": "Gunakan 几 untuk menanyakan jumlah kecil yang belum diketahui.", "usageNotes": "Pola umum: tempat/kelompok + 有 + jumlah + orang/benda. Beberapa jawaban mungkin memakai angka yang berbeda.", "unitId": "unit-daily-home" }
+  ],
+  "dialogues": [
+    { "id": "dialogue-daily-greetings", "unitId": "unit-daily-greetings", "slug": "first-meeting", "title": "Berkenalan untuk pertama kali", "objective": "Menyapa dan menanyakan nama teman baru.", "turns": [
+      { "id": "dialogue-greetings-1", "role": "A", "text": "你好！", "pinyin": ["nǐ", "hǎo"], "translation": "Halo!" },
+      { "id": "dialogue-greetings-2", "role": "B", "text": "你好！你叫什么名字？", "pinyin": ["nǐ", "hǎo", "nǐ", "jiào", "shén", "me", "míng", "zi"], "translation": "Halo! Siapa namamu?" },
+      { "id": "dialogue-greetings-3", "role": "A", "text": "我叫安娜。", "pinyin": ["wǒ", "jiào", "ān", "nà"], "translation": "Namaku Anna." },
+      { "id": "dialogue-greetings-4", "role": "B", "text": "很高兴认识你。", "pinyin": ["hěn", "gāo", "xìng", "rèn", "shi", "nǐ"], "translation": "Senang berkenalan denganmu." }
+    ] },
+    { "id": "dialogue-daily-food", "unitId": "unit-daily-food", "slug": "order-drink", "title": "Memesan minuman", "objective": "Menanyakan pilihan dan menyampaikan minuman yang diinginkan.", "turns": [
+      { "id": "dialogue-food-1", "role": "A", "text": "你想喝什么？", "pinyin": ["nǐ", "xiǎng", "hē", "shén", "me"], "translation": "Kamu ingin minum apa?" },
+      { "id": "dialogue-food-2", "role": "B", "text": "我想喝茶。", "pinyin": ["wǒ", "xiǎng", "hē", "chá"], "translation": "Saya ingin minum teh." }
+    ] },
+    { "id": "dialogue-daily-home", "unitId": "unit-daily-home", "slug": "family-size", "title": "Bercerita tentang keluarga", "objective": "Menanyakan berapa orang anggota keluarga.", "turns": [
+      { "id": "dialogue-home-1", "role": "A", "text": "你家有几个人？", "pinyin": ["nǐ", "jiā", "yǒu", "jǐ", "ge", "rén"], "translation": "Ada berapa orang di keluargamu?" },
+      { "id": "dialogue-home-2", "role": "B", "text": "我家有四个人。", "pinyin": ["wǒ", "jiā", "yǒu", "sì", "ge", "rén"], "translation": "Ada empat orang di keluargaku." }
+    ] }
+  ],
+  "stories": [
+    { "id": "story-daily-introduce", "unitId": "unit-daily-intro", "slug": "meet-anna", "title": "Kenalan dengan Anna", "objective": "Membaca perkenalan singkat dan mengenali pola kalimat identitas.", "paragraphs": [
+      { "id": "story-introduce-1", "text": "你好！我叫安娜。我是印尼人。", "pinyin": ["nǐ", "hǎo", "wǒ", "jiào", "ān", "nà", "wǒ", "shì", "yìn", "ní", "rén"], "translation": "Halo! Namaku Anna. Saya orang Indonesia." }
+    ] },
+    { "id": "story-daily-food", "unitId": "unit-daily-food", "slug": "tea-break", "title": "Istirahat minum teh", "objective": "Memahami dialog singkat saat memilih minuman.", "paragraphs": [
+      { "id": "story-food-1", "text": "小美想喝茶。她请朋友一起喝。", "pinyin": ["xiǎo", "měi", "xiǎng", "hē", "chá", "tā", "qǐng", "péng", "you", "yì", "qǐ", "hē"], "translation": "Xiaomei ingin minum teh. Ia mengajak temannya minum bersama." }
+    ] }
+  ],
+  "placementAssessment": {
+    "version": "starting-point-v1",
+    "notes": "App-authored diagnostic only. Never present as an official HSK test or certificate.",
+    "questions": [
+      { "id": "placement-welcome", "prompt": "你好", "pinyin": "nǐ hǎo", "options": ["Halo", "Terima kasih", "Selamat malam", "Sampai jumpa"], "answer": 0, "band": "foundation" },
+      { "id": "placement-basic-sentence", "prompt": "我喝水。", "pinyin": "wǒ hē shuǐ", "options": ["Saya minum air.", "Saya ingin minum teh.", "Nama saya Anna.", "Saya pergi ke sekolah."], "answer": 0, "band": "foundation" },
+      { "id": "placement-introduction", "prompt": "你叫什么名字？", "pinyin": "nǐ jiào shén me míng zi", "options": ["Siapa namamu?", "Kamu tinggal di mana?", "Berapa harganya?", "Kamu ingin minum apa?"], "answer": 0, "band": "elementary" },
+      { "id": "placement-want", "prompt": "我___喝茶。", "pinyin": "wǒ ___ hē chá", "options": ["想", "是", "吗", "在"], "answer": 0, "band": "elementary" },
+      { "id": "placement-cause", "prompt": "因为今天下雨，所以我坐车。", "pinyin": "yīnwèi jīntiān xiàyǔ, suǒyǐ wǒ zuò chē", "options": ["Hari ini hujan, jadi saya naik kendaraan.", "Kemarin cerah, jadi saya berjalan.", "Saya suka hujan dan teh.", "Saya belum tahu cara naik bus."], "answer": 0, "band": "developing" },
+      { "id": "placement-contrast", "prompt": "虽然我很忙，但是我每天练习中文。", "pinyin": "suīrán wǒ hěn máng, dànshì wǒ měitiān liànxí Zhōngwén", "options": ["Walaupun sibuk, saya berlatih bahasa Mandarin setiap hari.", "Karena saya sibuk, saya tidak belajar Mandarin.", "Saya belajar Mandarin selama satu hari.", "Saya ingin mengajar bahasa Mandarin."], "answer": 0, "band": "confident" }
+    ]
+  }
+}
