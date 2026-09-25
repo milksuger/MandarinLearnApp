@@ -161,7 +161,7 @@ function PracticeHubPage() {
   </div></Protected>;
 }
 
-type DiscoverItem = { id: string; simplifiedForm: string; meaning: string | null; pinyin: string | null; audioId: string | null };
+type DiscoverItem = { id: string; simplifiedForm: string; meaning: string | null; pinyinJson: string | null; audioId: string | null };
 function DiscoverPage() {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<"all" | "daily_life" | "hsk">("all");
@@ -184,9 +184,17 @@ function DiscoverPage() {
     <div className="discover-filters" aria-label="Filter materi"><button className={kind === "all" ? "filter-active" : ""} onClick={() => setKind("all")}>Semua</button><button className={kind === "daily_life" ? "filter-active" : ""} onClick={() => setKind("daily_life")}>Keseharian</button><button className={kind === "hsk" ? "filter-active" : ""} onClick={() => setKind("hsk")}>Jalur HSK</button></div>
     <div className="discover-results-head"><strong>{query ? `Hasil untuk “${query}”` : "Materi yang sudah tersedia"}</strong><span>{loading ? "Mencari…" : `${items.length} kata`}</span></div>
     {error && <InlineNotice tone="danger">{error}</InlineNotice>}
-    {items.length ? <div className="discover-grid">{items.map((item) => <article className="discover-card" key={item.id}><Link to={`/word/${item.id}`} className="discover-card-main"><span className="discover-hanzi">{item.simplifiedForm}</span><span className="discover-word-copy"><strong>{item.meaning ?? "Arti sedang disiapkan"}</strong><small>{item.pinyin ?? "Pinyin sedang disiapkan"}</small></span><ChevronRight aria-hidden="true" /></Link><AudioButton assetId={item.audioId} text={item.simplifiedForm} /></article>)}</div> : !loading && !error ? <div className="empty-card discover-empty"><div className="empty-icon"><Compass /></div><h3>{query ? "Belum ada kata yang cocok" : "Materi belum tersedia"}</h3><p>{query ? "Coba hanzi, pinyin bertanda nada, atau arti yang lebih umum." : "Kata yang sudah diterbitkan akan muncul di sini."}</p>{query && <button className="button button-soft" onClick={() => setQuery("")}>Lihat semua kata</button>}</div> : null}
+    {items.length ? <div className="discover-grid">{items.map((item) => <article className="discover-card" key={item.id}><Link to={`/word/${item.id}`} className="discover-card-main"><span className="discover-hanzi">{item.simplifiedForm}</span><span className="discover-word-copy"><strong>{item.meaning ?? "Arti sedang disiapkan"}</strong><small>{formatPinyinJson(item.pinyinJson) || "Pinyin sedang disiapkan"}</small></span><ChevronRight aria-hidden="true" /></Link><AudioButton assetId={item.audioId} text={item.simplifiedForm} /></article>)}</div> : !loading && !error ? <div className="empty-card discover-empty"><div className="empty-icon"><Compass /></div><h3>{query ? "Belum ada kata yang cocok" : "Materi belum tersedia"}</h3><p>{query ? "Coba hanzi, pinyin bertanda nada, atau arti yang lebih umum." : "Kata yang sudah diterbitkan akan muncul di sini."}</p>{query && <button className="button button-soft" onClick={() => setQuery("")}>Lihat semua kata</button>}</div> : null}
     <p className="discover-note"><ShieldCheck /> Hanya materi yang sudah diterbitkan dan memiliki sumber yang terdaftar akan ditampilkan.</p>
   </div></Protected>;
+}
+
+function formatPinyinJson(value: string | null) {
+  if (!value) return "";
+  try {
+    const syllables = JSON.parse(value) as string[];
+    return syllables.join(" ");
+  } catch { return ""; }
 }
 
 function PathPage() {

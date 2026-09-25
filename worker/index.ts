@@ -197,7 +197,7 @@ app.get("/api/v1/discover", async (c) => {
     SELECT v.id, v.simplified_form AS simplifiedForm,
       (SELECT g.text FROM vocabulary_glosses vg JOIN glosses g ON g.id = vg.gloss_id
         WHERE vg.vocabulary_id = v.id AND g.status = 'approved' AND g.locale = 'id' ORDER BY g.id LIMIT 1) AS meaning,
-      r.numbered_pinyin AS pinyin,
+      r.pinyin_json AS pinyinJson,
       (SELECT a.id FROM audio_assets a WHERE a.reading_id = r.id AND a.status = 'approved'
         AND (a.pronunciation_review = 'passed' OR a.source_attested_at IS NOT NULL)
         ORDER BY CASE WHEN a.pronunciation_review = 'passed' THEN 0 ELSE 1 END, a.id LIMIT 1) AS audioId
