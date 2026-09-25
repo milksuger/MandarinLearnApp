@@ -400,13 +400,24 @@ app.post("/api/v1/activities/:activityId/progress", async (c) => {
   const activityId = c.req.param("activityId");
   const body = parseBody(z.object({ state: z.enum(["in_progress","completed"]), currentItemOrdinal: z.number().int().min(0).max(500), correctCount: z.number().int().min(0).max(500).optional() }).strict(), await c.req.json().catch(() => null));
   if (!body) return jsonError("invalid_request", "Kemajuan aktivitas tidak valid.");
-  const activity = await c.env.DB.prepare(`SELECT a.id, (SELECT COUNT(*) FROM curriculum_activity_items i WHERE i.activity_id = a.id) AS itemCount
+  const activity = await c.env.DB.prepare(`SELECT a.id, a.activity_kind AS activityKind, a.unit_id AS unitId,
+      (SELECT COUNT(*) FROM curriculum_activity_items i WHERE i.activity_id = a.id) AS itemCount
     FROM curriculum_activities a JOIN curriculum_units u ON u.id = a.unit_id JOIN curricula c ON c.id = u.curriculum_id
     WHERE a.id = ? AND a.status = 'published' AND u.status = 'published' AND c.status = 'published'`)
-    .bind(activityId).first<{ id: string; itemCount: number }>();
+    .bind(activityId).first<{ id: string; activityKind: string; unitId: string; itemCount: number }>();
   if (!activity) return jsonError("activity_unavailable", "Aktivitas ini belum tersedia.", 404);
   if (activity.itemCount > 0 && body.currentItemOrdinal >= activity.itemCount) return jsonError("invalid_cursor", "Posisi aktivitas sudah melewati materinya.");
   if (body.correctCount !== undefined && activity.itemCount > 0 && body.correctCount > activity.itemCount) return jsonError("invalid_score", "Nilai latihan tidak valid.");
+  if (body.state === "completed" && activity.activityKind === "writing") {
+    const counts = await c.env.DB.prepare(`SELECT
+        (SELECT COUNT(DISTINCT ch.id) FROM curriculum_placements cp
+          LEFT JOIN vocabulary_characters vc ON vc.vocabulary_id = cp.vocabulary_id
+          JOIN characters ch ON ch.id = COALESCE(cp.character_id, vc.character_id)
+          WHERE cp.unit_id = ? AND ch.status = 'approved' AND ch.stroke_data_status = 'approved') AS total,
+        (SELECT COUNT(*) FROM learner_activity_character_progress WHERE user_id = ? AND activity_id = ?) AS completed`)
+      .bind(activity.unitId, principal.id, activityId).first<{ total: number; completed: number }>();
+    if (counts && counts.total > 0 && counts.completed < counts.total) return jsonError("activity_incomplete", "Selesaikan semua karakter yang memiliki data guratan sebelum menutup langkah menulis.", 409);
+  }
   await c.env.DB.prepare(`INSERT INTO learner_activity_progress(user_id, activity_id, state, current_item_ordinal, correct_count, started_at, completed_at)
     VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), CASE WHEN ? = 'completed' THEN strftime('%Y-%m-%dT%H:%M:%fZ','now') ELSE NULL END)
     ON CONFLICT(user_id, activity_id) DO UPDATE SET
