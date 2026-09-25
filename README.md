@@ -16,6 +16,9 @@ This repository contains the runnable Cloudflare preview based on the user-provi
 - [Product spec](specs/001-platform-foundation/spec.md)
 - [Architecture decisions](specs/001-platform-foundation/architecture.md)
 - [Implementation order and status](specs/001-platform-foundation/tasks.md)
+- [Scenario-based product rebuild spec](specs/002-superchinese-inspired-rebuild/spec.md)
+- [Rebuild architecture decisions](specs/002-superchinese-inspired-rebuild/architecture.md)
+- [Rebuild task plan](specs/002-superchinese-inspired-rebuild/tasks.md)
 
 ## Platforms
 

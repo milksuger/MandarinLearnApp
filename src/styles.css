@@ -103,11 +103,50 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .empty-icon svg { width: 21px; }
 .hsk-level-strip { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; }
 .hsk-level-strip span { padding: 7px 9px; border: 1px solid #e8eaf1; border-radius: 9px; color: #696f82; background: #fafbfc; font-size: 9px; font-weight: 700; }
-.mobile-nav { position: fixed; inset: auto 0 0; z-index: 40; width: min(100%, 860px); margin-inline: auto; padding: 6px 14px calc(6px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid rgba(232,228,221,.9); border-bottom: 0; border-radius: 18px 18px 0 0; background: rgba(255,254,251,.97); box-shadow: 0 -8px 26px rgba(40,43,58,.09); backdrop-filter: blur(20px); }
+.mobile-nav { position: fixed; inset: auto 0 0; z-index: 40; width: min(100%, 860px); margin-inline: auto; padding: 6px 14px calc(6px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid rgba(232,228,221,.9); border-bottom: 0; border-radius: 18px 18px 0 0; background: rgba(255,254,251,.97); box-shadow: 0 -8px 26px rgba(40,43,58,.09); backdrop-filter: blur(20px); }
 .mobile-nav a { min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #747b8b; font-size: 11px; font-weight: 700; touch-action: manipulation; }
 .mobile-nav svg { width: 21px; height: 21px; stroke-width: 1.9; }
 .mobile-nav a.active { color: #a95f39; }
 .mobile-nav a.active svg { stroke-width: 2.5; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.practice-hub-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.skill-card { min-height: 112px; padding: 17px; display: flex; align-items: center; gap: 13px; border: 1px solid var(--line); border-radius: 17px; background: #fff; box-shadow: 0 4px 14px rgba(33,37,58,.025); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.skill-card:hover { transform: translateY(-2px); border-color: #f1d681; box-shadow: var(--shadow); }
+.skill-card > span:nth-child(2) { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.skill-card strong { font-size: 14px; }
+.skill-card small { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.skill-card > svg { width: 18px; flex: 0 0 auto; color: #9da1af; }
+.skill-icon { width: 46px; height: 46px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 15px; color: #8e6900; background: #fff5d7; }
+.skill-icon svg { width: 21px; height: 21px; }
+.skill-icon-review { background: #edf8f5; color: #18866b; }
+.skill-icon-write { background: #f1edff; color: #6655a5; }
+.skill-icon-course { background: #fff0e7; color: #aa6339; }
+.practice-hub-heading { margin-top: 31px; }
+.discover-search { min-height: 54px; padding: 0 13px 0 16px; display: flex; align-items: center; gap: 11px; border: 1px solid #dedfe6; border-radius: 15px; background: white; box-shadow: 0 5px 18px rgba(35,40,62,.035); }
+.discover-search > svg { width: 20px; height: 20px; flex: 0 0 auto; color: #818697; }
+.discover-search input { min-width: 0; flex: 1; height: 50px; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 15px; }
+.discover-search input::placeholder { color: #a0a4b0; }
+.discover-search button { width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 12px; background: #f3f4f7; color: #777d8c; }
+.discover-search button:disabled { visibility: hidden; }
+.discover-search button svg { width: 18px; height: 18px; }
+.discover-filters { margin: 13px 0 4px; display: flex; flex-wrap: wrap; gap: 8px; }
+.discover-filters button { min-height: 44px; padding: 0 14px; border: 1px solid #e4e5eb; border-radius: 999px; color: #696f80; background: #fff; font-size: 12px; font-weight: 700; }
+.discover-filters button.filter-active { border-color: #292f48; color: #fff; background: #292f48; }
+.discover-results-head { margin: 21px 2px 11px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.discover-results-head strong { font-size: 14px; }
+.discover-results-head span { color: var(--muted); font-size: 12px; }
+.discover-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+.discover-card { min-width: 0; min-height: 105px; padding: 14px 13px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 16px; background: white; }
+.discover-card-main { min-width: 0; flex: 1; display: flex; align-items: center; gap: 11px; }
+.discover-hanzi { max-width: 90px; overflow: hidden; color: #252941; font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif; font-size: clamp(23px, 4vw, 31px); font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.discover-word-copy { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.discover-word-copy strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.discover-word-copy small { color: var(--muted); font-size: 11px; }
+.discover-card-main > svg { width: 16px; flex: 0 0 auto; color: #a0a4b0; }
+.discover-card .audio-control { flex: 0 0 auto; }
+.discover-empty { margin-top: 17px; }
+.discover-note { margin: 20px 2px 0; display: flex; align-items: flex-start; gap: 7px; color: #838897; font-size: 11px; line-height: 1.55; }
+.discover-note svg { width: 16px; height: 16px; flex: 0 0 auto; color: #199276; }
 .quick-start { margin: 18px 0 12px; padding: 13px 15px; display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); align-items: center; gap: 9px; border: 1px solid #eee8df; border-radius: 16px; background: rgba(255,255,255,.83); }
 .quick-start-title { color: #7d6656; font-size: 11px; font-weight: 800; white-space: nowrap; }
 .quick-start > span:not(.quick-start-title) { display: inline-flex; align-items: center; gap: 7px; color: #62697a; font-size: 11px; font-weight: 650; }
@@ -365,6 +404,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .trust-note svg { flex: 0 0 auto; }
   .mobile-nav { padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
   .mobile-nav a { min-height: 52px; font-size: 10px; }
+  .practice-hub-grid, .discover-grid { grid-template-columns: 1fr; gap: 8px; }
+  .skill-card { min-height: 90px; padding: 13px; gap: 10px; border-radius: 14px; }
+  .skill-card strong { font-size: 14px; }
+  .skill-card small { font-size: 12px; }
+  .skill-icon { width: 42px; height: 42px; border-radius: 13px; }
+  .discover-search { min-height: 52px; }
+  .discover-search input { font-size: 16px; }
+  .discover-card { min-height: 84px; }
   .page-wrap { padding: 21px 0 28px; }
   .page-title h1 { font-size: 27px; }
   .page-title p { font-size: 10px; }

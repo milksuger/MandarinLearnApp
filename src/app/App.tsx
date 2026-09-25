@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router";
-import { Activity, ArrowLeft, ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Cloud, Flame, Headphones, Home, Layers3, LogOut, Menu, Pause, Play, RotateCcw, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Cloud, Compass, Flame, Headphones, Home, Layers3, LogOut, Menu, Pause, PenLine, Play, RotateCcw, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
 import HanziWriter from "hanzi-writer";
 import OpenCC from "opencc-js/t2cn";
 import audioAssetManifest from "../../content/audio-assets-manifest.json";
@@ -26,6 +26,8 @@ function App() {
       <Route path="/signup" element={<AuthPage mode="signup" />} />
       <Route path="/paths" element={<PathsPage />} />
       <Route path="/paths/:pathId" element={<PathPage />} />
+      <Route path="/practice" element={<PracticeHubPage />} />
+      <Route path="/discover" element={<DiscoverPage />} />
       <Route path="/unit/:unitId" element={<LessonPage />} />
       <Route path="/word/:entryId" element={<WordPage />} />
       <Route path="/write/:characterId" element={<GuidedWritingPage />} />
@@ -72,7 +74,7 @@ function LearnerFrame({ user, isPending }: { user: SessionUser | null; isPending
     </header>
     <main className="learner-main">{isPending ? <div className="centered-page"><div className="loader" /></div> : <Outlet />}</main>
     <nav className="mobile-nav" aria-label="Navigasi utama">
-      <NavLink to="/" end><Home /><span>Beranda</span></NavLink><NavLink to="/paths"><Layers3 /><span>Belajar</span></NavLink><NavLink to="/review"><RotateCcw /><span>Ulangi</span></NavLink><NavLink to="/profile"><UserRound /><span>Profil</span></NavLink>
+      <NavLink to="/" end><Home /><span>Beranda</span></NavLink><NavLink to="/paths"><Layers3 /><span>Kursus</span></NavLink><NavLink to="/practice"><PenLine /><span>Latihan</span></NavLink><NavLink to="/discover"><Compass /><span>Jelajahi</span></NavLink><NavLink to="/review"><RotateCcw /><span>Ulangi</span></NavLink>
     </nav>
   </div>;
 }
@@ -92,16 +94,20 @@ function Protected({ children }: { children: React.ReactNode }) {
 function HomePage({ user }: { user: SessionUser | null }) {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [dueReviews, setDueReviews] = useState<number | null>(null);
+  const [continueTarget, setContinueTarget] = useState<{ unitId: string; unitTitle: string; curriculumName: string } | null>(null);
   const [paths, setPaths] = useState<Array<{ id: string; slug: string; name: string; kind: string; description: string | null }>>([]);
   const [error, setError] = useState("");
   useEffect(() => {
     api<{ paths: typeof paths }>("/paths").then((data) => setPaths(data.paths)).catch(() => setError("Tidak dapat memuat jalur belajar."));
-    if (user) api<{ summary: Metrics; due: number }>("/progress").then((data) => { setMetrics(data.summary); setDueReviews(data.due); }).catch(() => { setMetrics(null); setDueReviews(null); });
+    if (user) {
+      api<{ summary: Metrics; due: number }>("/progress").then((data) => { setMetrics(data.summary); setDueReviews(data.due); }).catch(() => { setMetrics(null); setDueReviews(null); });
+      api<{ destination: typeof continueTarget }>("/continue").then((data) => setContinueTarget(data.destination)).catch(() => setContinueTarget(null));
+    } else setContinueTarget(null);
   }, [user]);
   const name = user?.name?.trim().split(" ")[0] || "teman";
   return <Protected><div className="home-wrap">
     <section className="greeting-row"><div><p className="eyebrow">SELAMAT DATANG KEMBALI</p><h1>你好, {name} <span className="wave">✦</span></h1><p className="muted">Setiap guratan membawamu selangkah lebih dekat.</p></div><div className="streak-chip" title="Jumlah hari belajar berurutan" aria-label={(metrics?.streak_days ?? 0) + " hari belajar berurutan"}><Flame size={18} /><span><strong>{metrics?.streak_days ?? 0}</strong><small>hari belajar beruntun</small></span></div></section>
-    <section className="daily-card"><div className="daily-copy"><span className="tag tag-white">TUJUAN HARI INI</span><h2>Belajar sedikit, setiap hari.</h2><p>Mulai dengan beberapa kata yang berguna dalam kehidupan sehari-hari.</p><Link to="/paths" className="button button-dark">Mulai belajar <ArrowRight size={16} /></Link></div><div className="daily-art" aria-hidden="true"><img src="/media/mascot/study-companion.webp" alt="" width="250" height="250" fetchPriority="high" /></div></section>
+    <section className="daily-card"><div className="daily-copy"><span className="tag tag-white">TUJUAN HARI INI</span><h2>{continueTarget ? `Lanjutkan: ${continueTarget.unitTitle}` : "Belajar sedikit, setiap hari."}</h2><p>{continueTarget ? `${continueTarget.curriculumName} · Lanjutkan topik yang terakhir kamu pelajari.` : "Mulai dengan beberapa kata yang berguna dalam kehidupan sehari-hari."}</p><Link to={continueTarget ? `/unit/${continueTarget.unitId}` : "/paths"} className="button button-dark">{continueTarget ? "Lanjutkan belajar" : "Mulai belajar"} <ArrowRight size={16} /></Link></div><div className="daily-art" aria-hidden="true"><img src="/media/mascot/study-companion.webp" alt="" width="250" height="250" fetchPriority="high" /></div></section>
     <section className="quick-start" aria-label="Cara belajar"><span className="quick-start-title">Mudah dimulai</span><span><b>1</b>Pilih pelajaran</span><span><b>2</b>Dengarkan &amp; baca</span><span><b>3</b>Tulis &amp; ulangi</span></section>
     <section className="metric-grid"><MetricCard icon={<BookOpen />} label="Materi dipelajari" value={metrics?.learned_items ?? 0} unit="kata & karakter" /><MetricCard icon={<Activity />} label="Latihan selesai" value={metrics?.attempts ?? 0} unit="semua sesi" /><MetricCard icon={<Clock3 />} label="Siap diulang" value={dueReviews ?? 0} unit="kata dan karakter" /></section>
     <div className="section-heading"><div><h2>Jalur belajarmu</h2><p>Belajar dari keseharian atau pilih susunan HSK 2.0 maupun HSK 3.0.</p></div><Link to="/paths" className="text-link">Lihat semua <ChevronRight size={16} /></Link></div>
@@ -127,6 +133,59 @@ function PathsPage() {
   useEffect(() => { void api<{ paths: typeof paths }>("/paths").then((data) => setPaths(data.paths)).catch(() => setPaths([])); }, []);
   return <Protected><div className="page-wrap"><PageBack to="/" label="Beranda" /><PageTitle eyebrow="PILIH JALUR" title="Pilih jalur belajar" subtitle="Mulai dari keseharian atau pilih tingkat HSK. Setelah itu buka satu pelajaran dan ikuti empat langkahnya: kenali kata, baca contoh, menulis, lalu mengulang." />
     {paths.length ? <div className="path-cards path-cards-page">{paths.map((path) => <PathCard key={path.id} path={path} />)}</div> : <div className="empty-card"><div className="empty-icon"><BookOpen /></div><h3>Materi sedang ditinjau</h3><p>Susunan jalur sudah dibuat. Kosakata dan penempatan pelajaran akan diterbitkan setelah sumber serta lisensinya diperiksa.</p><div className="hsk-level-strip">{Array.from({ length: 9 }, (_, i) => <span key={i}>HSK {i + 1}</span>)}</div></div>}
+  </div></Protected>;
+}
+
+function PracticeHubPage() {
+  const [paths, setPaths] = useState<Array<{ id: string; slug: string; name: string; kind: string; description: string | null }>>([]);
+  const [units, setUnits] = useState<Array<{ id: string; title: string; description: string | null; ordinal: number; placement_count: number }>>([]);
+  useEffect(() => {
+    void api<{ paths: typeof paths }>("/paths").then(async ({ paths: available }) => {
+      setPaths(available);
+      const daily = available.find((path) => path.kind === "daily_life");
+      if (daily) {
+        const result = await api<{ units: typeof units }>(`/paths/${encodeURIComponent(daily.id)}/units`);
+        setUnits(result.units.filter((unit) => unit.placement_count > 0));
+      }
+    }).catch(() => { setPaths([]); setUnits([]); });
+  }, []);
+  return <Protected><div className="page-wrap"><PageTitle eyebrow="LATIHAN MANDIRI" title="Pilih yang ingin kamu latih" subtitle="Latihan memakai kata dan karakter yang sama dengan kursusmu, agar hasilnya tetap terhubung ke materi yang dipelajari." />
+    <div className="practice-hub-grid">
+      <Link className="skill-card" to="/review"><span className="skill-icon skill-icon-review"><RotateCcw /></span><span><strong>Ulangi materi</strong><small>Kerjakan kata dan karakter yang sudah waktunya ditinjau.</small></span><ChevronRight /></Link>
+      <Link className="skill-card" to="/freehand"><span className="skill-icon skill-icon-write"><PenLine /></span><span><strong>Kenali tulisanmu</strong><small>Tulis karakter bebas dan pilih kandidat yang kamu maksud.</small></span><ChevronRight /></Link>
+      <Link className="skill-card" to="/discover"><span className="skill-icon skill-icon-listen"><Headphones /></span><span><strong>Dengarkan kosakata</strong><small>Jelajahi arti, pinyin, dan rekaman yang tersedia.</small></span><ChevronRight /></Link>
+      <Link className="skill-card" to="/paths"><span className="skill-icon skill-icon-course"><BookOpen /></span><span><strong>Belajar lewat skenario</strong><small>Ikuti contoh, panduan menulis, dan cek pemahaman.</small></span><ChevronRight /></Link>
+    </div>
+    <div className="section-heading practice-hub-heading"><div><h2>Latihan dari topik sehari-hari</h2><p>Pilih topik yang sudah memiliki materi.</p></div><Link to="/paths" className="text-link">Semua kursus <ChevronRight /></Link></div>
+    {units.length ? <div className="unit-list">{units.map((unit) => <Link className="unit-row" to={`/unit/${unit.id}`} key={unit.id}><span className="unit-number">{String(unit.ordinal + 1).padStart(2, "0")}</span><span className="unit-copy"><strong>{unit.title}</strong><small>{unit.description ?? "Skenario keseharian"}</small></span><span className="unit-progress">{unit.placement_count} materi</span><ChevronRight /></Link>)}</div> : <div className="empty-card"><h3>Topik latihan sedang dimuat</h3><p>Materi topik akan muncul setelah server dapat dijangkau.</p><Link className="button button-soft" to="/paths">Buka kursus <ArrowRight /></Link></div>}
+  </div></Protected>;
+}
+
+type DiscoverItem = { id: string; simplifiedForm: string; meaning: string | null; pinyin: string | null; audioId: string | null };
+function DiscoverPage() {
+  const [query, setQuery] = useState("");
+  const [kind, setKind] = useState<"all" | "daily_life" | "hsk">("all");
+  const [items, setItems] = useState<DiscoverItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    const timer = window.setTimeout(() => {
+      void api<{ items: DiscoverItem[] }>(`/discover?q=${encodeURIComponent(query)}&kind=${kind === "all" ? "" : kind}`)
+        .then(({ items: results }) => { if (active) { setItems(results); setError(""); } })
+        .catch(() => { if (active) setError("Belum dapat memuat materi. Periksa koneksi lalu coba lagi."); })
+        .finally(() => { if (active) setLoading(false); });
+    }, 180);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [query, kind]);
+  return <Protected><div className="page-wrap discover-page"><PageTitle eyebrow="JELAJAHI MANDARIN" title="Temukan kata baru" subtitle="Cari dengan hanzi, pinyin, atau arti bahasa Indonesia. Buka kata untuk melihat contoh dan karakter penyusunnya." />
+    <label className="discover-search"><Search aria-hidden="true" /><span className="sr-only">Cari hanzi, pinyin, atau arti</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Contoh: 你好, nǐ hǎo, halo" autoComplete="off" /><button type="button" onClick={() => setQuery("")} disabled={!query} aria-label="Hapus pencarian"><X /></button></label>
+    <div className="discover-filters" aria-label="Filter materi"><button className={kind === "all" ? "filter-active" : ""} onClick={() => setKind("all")}>Semua</button><button className={kind === "daily_life" ? "filter-active" : ""} onClick={() => setKind("daily_life")}>Keseharian</button><button className={kind === "hsk" ? "filter-active" : ""} onClick={() => setKind("hsk")}>Jalur HSK</button></div>
+    <div className="discover-results-head"><strong>{query ? `Hasil untuk “${query}”` : "Materi yang sudah tersedia"}</strong><span>{loading ? "Mencari…" : `${items.length} kata`}</span></div>
+    {error && <InlineNotice tone="danger">{error}</InlineNotice>}
+    {items.length ? <div className="discover-grid">{items.map((item) => <article className="discover-card" key={item.id}><Link to={`/word/${item.id}`} className="discover-card-main"><span className="discover-hanzi">{item.simplifiedForm}</span><span className="discover-word-copy"><strong>{item.meaning ?? "Arti sedang disiapkan"}</strong><small>{item.pinyin ?? "Pinyin sedang disiapkan"}</small></span><ChevronRight aria-hidden="true" /></Link><AudioButton assetId={item.audioId} text={item.simplifiedForm} /></article>)}</div> : !loading && !error ? <div className="empty-card discover-empty"><div className="empty-icon"><Compass /></div><h3>{query ? "Belum ada kata yang cocok" : "Materi belum tersedia"}</h3><p>{query ? "Coba hanzi, pinyin bertanda nada, atau arti yang lebih umum." : "Kata yang sudah diterbitkan akan muncul di sini."}</p>{query && <button className="button button-soft" onClick={() => setQuery("")}>Lihat semua kata</button>}</div> : null}
+    <p className="discover-note"><ShieldCheck /> Hanya materi yang sudah diterbitkan dan memiliki sumber yang terdaftar akan ditampilkan.</p>
   </div></Protected>;
 }
 

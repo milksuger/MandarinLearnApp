@@ -179,6 +179,58 @@ app.get("/api/v1/paths", async (c) => {
   return c.json({ paths: paths.results });
 });
 
+app.get("/api/v1/discover", async (c) => {
+  const query = (c.req.query("q") ?? "").trim().slice(0, 60);
+  const requestedKind = c.req.query("kind") ?? "";
+  if (requestedKind && requestedKind !== "daily_life" && requestedKind !== "hsk") return jsonError("invalid_filter", "Filter materi tidak valid.");
+  const pattern = `%${query}%`;
+  const rows = await c.env.DB.prepare(`WITH eligible AS (
+    SELECT v.id, v.simplified_form,
+      (SELECT r.id FROM readings r WHERE r.vocabulary_id = v.id AND r.status = 'approved'
+        ORDER BY CASE WHEN EXISTS (SELECT 1 FROM audio_assets a WHERE a.reading_id = r.id AND a.status = 'approved'
+          AND (a.pronunciation_review = 'passed' OR a.source_attested_at IS NOT NULL)) THEN 0 ELSE 1 END, r.id LIMIT 1) AS reading_id
+    FROM vocabulary_entries v
+    WHERE v.status = 'approved' AND EXISTS (
+      SELECT 1 FROM curriculum_placements cp JOIN curriculum_units u ON u.id = cp.unit_id
+      JOIN curricula c ON c.id = u.curriculum_id
+      WHERE cp.vocabulary_id = v.id AND u.status = 'published' AND c.status = 'published'))
+    SELECT v.id, v.simplified_form AS simplifiedForm,
+      (SELECT g.text FROM vocabulary_glosses vg JOIN glosses g ON g.id = vg.gloss_id
+        WHERE vg.vocabulary_id = v.id AND g.status = 'approved' AND g.locale = 'id' ORDER BY g.id LIMIT 1) AS meaning,
+      r.numbered_pinyin AS pinyin,
+      (SELECT a.id FROM audio_assets a WHERE a.reading_id = r.id AND a.status = 'approved'
+        AND (a.pronunciation_review = 'passed' OR a.source_attested_at IS NOT NULL)
+        ORDER BY CASE WHEN a.pronunciation_review = 'passed' THEN 0 ELSE 1 END, a.id LIMIT 1) AS audioId
+    FROM eligible v LEFT JOIN readings r ON r.id = v.reading_id
+    WHERE (? = '' OR v.simplified_form LIKE ? OR EXISTS (
+        SELECT 1 FROM readings rp WHERE rp.vocabulary_id = v.id AND rp.status = 'approved'
+          AND (rp.numbered_pinyin LIKE ? OR rp.pinyin_json LIKE ?)) OR EXISTS (
+        SELECT 1 FROM vocabulary_glosses vg JOIN glosses g ON g.id = vg.gloss_id
+        WHERE vg.vocabulary_id = v.id AND g.status = 'approved' AND g.locale = 'id' AND g.text LIKE ?))
+      AND (? = '' OR EXISTS (SELECT 1 FROM curriculum_placements cp JOIN curriculum_units u ON u.id = cp.unit_id
+        JOIN curricula c ON c.id = u.curriculum_id WHERE cp.vocabulary_id = v.id
+          AND u.status = 'published' AND c.status = 'published' AND c.curriculum_kind = ?))
+    ORDER BY CASE WHEN v.simplified_form = ? THEN 0 ELSE 1 END, v.simplified_form LIMIT 60`)
+    .bind(query, pattern, pattern, pattern, pattern, requestedKind, requestedKind, query).all();
+  return c.json({ query, kind: requestedKind || "all", items: rows.results });
+});
+
+app.get("/api/v1/continue", async (c) => {
+  const principal = await requirePrincipal(c);
+  if (!principal) return jsonError("unauthenticated", "Silakan masuk terlebih dahulu.", 401);
+  const recent = await c.env.DB.prepare(`SELECT u.id AS unitId, u.title AS unitTitle, c.name AS curriculumName
+    FROM learning_attempts a JOIN curriculum_placements cp ON cp.id = a.placement_id
+    JOIN curriculum_units u ON u.id = cp.unit_id JOIN curricula c ON c.id = u.curriculum_id
+    WHERE a.user_id = ? AND u.status = 'published' AND c.status = 'published'
+    ORDER BY a.accepted_at DESC LIMIT 1`).bind(principal.id).first();
+  const first = recent ? null : await c.env.DB.prepare(`SELECT u.id AS unitId, u.title AS unitTitle, c.name AS curriculumName
+    FROM curriculum_units u JOIN curricula c ON c.id = u.curriculum_id
+    WHERE c.status = 'published' AND u.status = 'published' AND c.curriculum_kind = 'daily_life'
+      AND EXISTS (SELECT 1 FROM curriculum_placements cp WHERE cp.unit_id = u.id)
+    ORDER BY u.ordinal LIMIT 1`).first();
+  return c.json({ destination: recent ?? first ?? null, resumeMode: recent ? "last_practised_unit" : first ? "first_available_unit" : "no_published_units" });
+});
+
 app.get("/api/v1/paths/:pathId/units", async (c) => {
   const pathId = c.req.param("pathId");
   const rows = await c.env.DB.prepare(`SELECT u.id, u.slug, u.title, u.description, u.ordinal, u.level_number,
