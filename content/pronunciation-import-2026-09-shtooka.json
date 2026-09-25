@@ -1,0 +1,90 @@
+{
+  "version": "1.0.0",
+  "migrationFile": "migrations/0017_add_shtooka_mandarin_audio.sql",
+  "profiles": {
+    "shtooka": {
+      "speaker": "Unidentified male Mandarin voice (Commons description says speaker from Beijing)",
+      "creator": "Wei Gao, Vion Nicolas",
+      "artist": "Wei Gao, Vion Nicolas",
+      "license": "CC BY 2.0 fr",
+      "profileUrl": "https://commons.wikimedia.org/wiki/Commons:Shtooka",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Commons:Shtooka",
+      "sourceId": "source-commons-shtooka",
+      "sourceName": "Wikimedia Commons Shtooka Mandarin pronunciation recordings",
+      "sourceNotes": "The Commons Shtooka file description explicitly matches the marked pinyin and source character; it describes a male voice from Beijing, China. The file license, authors, pinyin title, original file hash and compatible derivative hash are preserved per entry.",
+      "verificationMethod": "Commons file description confirms marked pinyin/source character and identifies a male voice from Beijing; exact CC BY 2.0 fr license and original-byte SHA-1 verified by importer."
+    }
+  },
+  "recordings": [
+    {
+      "wordId": "word-leng",
+      "form": "冷",
+      "pinyin": [
+        "lěng"
+      ],
+      "profile": "shtooka",
+      "sourceType": "shtooka",
+      "matchMode": "pinyin",
+      "fileTitle": "Zh-lěng.ogg",
+      "descriptionCheck": "(冷) in Chinese",
+      "speakerIdentity": "Male voice; the Commons file description says the speaker is from Beijing, China.",
+      "readingId": "reading-word-leng"
+    },
+    {
+      "wordId": "word-ren",
+      "form": "人",
+      "pinyin": [
+        "rén"
+      ],
+      "profile": "shtooka",
+      "sourceType": "shtooka",
+      "matchMode": "pinyin",
+      "fileTitle": "Zh-rén.ogg",
+      "descriptionCheck": "(人) in Chinese",
+      "speakerIdentity": "Male voice; the Commons file description says the speaker is from Beijing, China.",
+      "readingId": "reading-vocabulary-word-ren"
+    },
+    {
+      "wordId": "word-qian",
+      "form": "钱",
+      "pinyin": [
+        "qián"
+      ],
+      "profile": "shtooka",
+      "sourceType": "shtooka",
+      "matchMode": "pinyin",
+      "fileTitle": "Zh-qián.ogg",
+      "descriptionCheck": "(前) in Chinese",
+      "speakerIdentity": "Male voice; the Commons file describes the same marked pronunciation qián using the homophone 前 and says the speaker is from Beijing, China.",
+      "readingId": "reading-word-qian"
+    },
+    {
+      "wordId": "word-please",
+      "form": "请",
+      "pinyin": [
+        "qǐng"
+      ],
+      "profile": "shtooka",
+      "sourceType": "shtooka",
+      "matchMode": "pinyin",
+      "fileTitle": "Zh-qǐng.ogg",
+      "descriptionCheck": "(请) in Chinese",
+      "speakerIdentity": "Male voice; the Commons file description says the speaker is from Beijing, China.",
+      "readingId": "reading-vocabulary-word-please"
+    },
+    {
+      "wordId": "word-very",
+      "form": "很",
+      "pinyin": [
+        "hěn"
+      ],
+      "profile": "shtooka",
+      "sourceType": "shtooka",
+      "matchMode": "pinyin",
+      "fileTitle": "Zh-hěn.ogg",
+      "descriptionCheck": "(很) in Chinese",
+      "speakerIdentity": "Male voice; the Commons file description says the speaker is from Beijing, China.",
+      "readingId": "reading-vocabulary-word-very"
+    }
+  ]
+}

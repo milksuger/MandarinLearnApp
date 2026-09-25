@@ -1,0 +1,58 @@
+{
+  "version": "1.0.0",
+  "migrationFile": "migrations/0018_add_shtooka_compound_word_audio.sql",
+  "profiles": {
+    "shtooka-cc-by-2-fr": {
+      "speaker": "Shtooka Mandarin speaker; see file-specific voice description",
+      "creator": "Wei Gao, Vion Nicolas",
+      "artist": "Wei Gao, Vion Nicolas",
+      "license": "CC BY 2.0 fr",
+      "profileUrl": "https://commons.wikimedia.org/wiki/Commons:Shtooka",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Commons:Shtooka",
+      "sourceId": "source-commons-shtooka-by20fr",
+      "sourceName": "Wikimedia Commons Shtooka Mandarin pronunciations (CC BY 2.0 fr)",
+      "sourceNotes": "The Commons Shtooka file page supplies the exact simplified word and marked pinyin, per-file speaker description, creator, license, and original file. Voice details must be taken from each file page; this collection includes different speakers and regions.",
+      "verificationMethod": "Commons file title and page description match the word and marked pinyin; creator, license URL, MIME type and downloaded original SHA-1 verified against Wikimedia Commons metadata."
+    },
+    "shtooka-cc-by-sa-3-us": {
+      "speaker": "Shtooka Mandarin speaker; see file-specific voice description",
+      "creator": "Yue Tan",
+      "artist": "Yue Tan",
+      "license": "CC BY-SA 3.0 us",
+      "profileUrl": "https://commons.wikimedia.org/wiki/Commons:Shtooka",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Commons:Shtooka",
+      "sourceId": "source-commons-shtooka-bysa30us",
+      "sourceName": "Wikimedia Commons Shtooka Mandarin pronunciations (CC BY-SA 3.0 US)",
+      "sourceNotes": "The Commons Shtooka file page supplies the exact simplified word and marked pinyin, per-file speaker description, creator, license, and original file. Voice details must be taken from each file page; this collection includes different speakers and regions. Adaptations are shared alike under the same license.",
+      "verificationMethod": "Commons file title and page description match the word and marked pinyin; creator, license URL, MIME type and downloaded original SHA-1 verified against Wikimedia Commons metadata."
+    }
+  },
+  "recordings": [
+    { "wordId": "word-bianhua", "form": "变化", "pinyin": ["biàn", "huà"], "readingId": "reading-word-bianhua", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-biànhuà.ogg", "descriptionCheck": "(变化) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-chezhan", "form": "车站", "pinyin": ["chē", "zhàn"], "readingId": "reading-word-chezhan", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-chēzhàn.ogg", "descriptionCheck": "(车站) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-chidao", "form": "迟到", "pinyin": ["chí", "dào"], "readingId": "reading-word-chidao", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-chídào.ogg", "descriptionCheck": "(迟到) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-fangbian", "form": "方便", "pinyin": ["fāng", "biàn"], "readingId": "reading-word-fangbian", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-fāngbiàn.ogg", "descriptionCheck": "(方便) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-gongzuo", "form": "工作", "pinyin": ["gōng", "zuò"], "readingId": "reading-word-gongzuo", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-gōngzuò.ogg", "descriptionCheck": "(工作) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-goodbye", "form": "再见", "pinyin": ["zài", "jiàn"], "readingId": "reading-vocabulary-word-goodbye", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-zàijiàn.ogg", "descriptionCheck": "(再见) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-houlai", "form": "后来", "pinyin": ["hòu", "lái"], "readingId": "reading-word-houlai", "profile": "shtooka-cc-by-sa-3-us", "sourceType": "shtooka", "fileTitle": "Zh-hòulái.ogg", "descriptionCheck": "(后来) in Chinese", "speakerIdentity": "Female voice; Commons says the speaker is from Liaoning, China." },
+    { "wordId": "word-jidan", "form": "鸡蛋", "pinyin": ["jī", "dàn"], "readingId": "reading-word-jidan", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-jīdàn.ogg", "descriptionCheck": "(鸡蛋) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-jiejie", "form": "姐姐", "pinyin": ["jiě", "jie"], "readingId": "reading-word-jiejie", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-jiějie.ogg", "descriptionCheck": "(姐姐) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-jinbu", "form": "进步", "pinyin": ["jìn", "bù"], "readingId": "reading-word-jinbu", "profile": "shtooka-cc-by-sa-3-us", "sourceType": "shtooka", "fileTitle": "Zh-jìnbù.ogg", "descriptionCheck": "(进步) in Chinese", "speakerIdentity": "Female voice; Commons says the speaker is from Liaoning, China." },
+    { "wordId": "word-juzi", "form": "句子", "pinyin": ["jù", "zi"], "readingId": "reading-word-juzi", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-jùzi.ogg", "descriptionCheck": "(句子) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-kaishi", "form": "开始", "pinyin": ["kāi", "shǐ"], "readingId": "reading-word-kaishi", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-kāishǐ.ogg", "descriptionCheck": "(开始) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-keneng", "form": "可能", "pinyin": ["kě", "néng"], "readingId": "reading-word-keneng", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-kěnéng.ogg", "descriptionCheck": "(可能) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-rice", "form": "米饭", "pinyin": ["mǐ", "fàn"], "readingId": "reading-vocabulary-word-rice", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-mǐfàn.ogg", "descriptionCheck": "(米饭) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-shangdian", "form": "商店", "pinyin": ["shāng", "diàn"], "readingId": "reading-word-shangdian", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-shāngdiàn.ogg", "descriptionCheck": "(商店) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-shenti", "form": "身体", "pinyin": ["shēn", "tǐ"], "readingId": "reading-word-shenti", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-shēntǐ.ogg", "descriptionCheck": "(身体) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-suiran", "form": "虽然", "pinyin": ["suī", "rán"], "readingId": "reading-word-suiran", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-suīrán.ogg", "descriptionCheck": "(虽然) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-tianqi", "form": "天气", "pinyin": ["tiān", "qì"], "readingId": "reading-word-tianqi", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-tiānqì.ogg", "descriptionCheck": "(天气) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-tongxue", "form": "同学", "pinyin": ["tóng", "xué"], "readingId": "reading-word-tongxue", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-tóngxué.ogg", "descriptionCheck": "(同学) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-xiguan", "form": "习惯", "pinyin": ["xí", "guàn"], "readingId": "reading-word-xiguan", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-xíguàn.ogg", "descriptionCheck": "(习惯) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-wenhua", "form": "文化", "pinyin": ["wén", "huà"], "readingId": "reading-word-wenhua", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-wénhuà.ogg", "descriptionCheck": "(文化) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-xiuxi", "form": "休息", "pinyin": ["xiū", "xi"], "readingId": "reading-word-xiuxi", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-xiūxi.ogg", "descriptionCheck": "(休息) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-yihou", "form": "以后", "pinyin": ["yǐ", "hòu"], "readingId": "reading-word-yihou", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-yǐhòu.ogg", "descriptionCheck": "(以后) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-yisheng", "form": "医生", "pinyin": ["yī", "shēng"], "readingId": "reading-word-yisheng", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-yīshēng.ogg", "descriptionCheck": "(医生) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-yisi", "form": "意思", "pinyin": ["yì", "si"], "readingId": "reading-word-yisi", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-yìsi.ogg", "descriptionCheck": "(意思) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." },
+    { "wordId": "word-zenme", "form": "怎么", "pinyin": ["zěn", "me"], "readingId": "reading-word-zenme", "profile": "shtooka-cc-by-2-fr", "sourceType": "shtooka", "fileTitle": "Zh-zěnme.ogg", "descriptionCheck": "(怎么) in Chinese", "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China." }
+  ]
+}

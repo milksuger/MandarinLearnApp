@@ -1,0 +1,887 @@
+{
+  "version": "1.0.0",
+  "migrationFile": "migrations/0016_add_community_mandarin_audio.sql",
+  "commonsCategory": "https://commons.wikimedia.org/wiki/Category:Lingua_Libre_pronunciation-cmn",
+  "profiles": {
+    "jouketou": {
+      "speaker": "Jouketou",
+      "recorder": "Jouketou",
+      "speakerQid": "Q1332695",
+      "license": "CC BY-SA 4.0",
+      "profileUrl": "https://lingualibre.org/wiki/Q1332695"
+    },
+    "luilui": {
+      "speaker": "Luilui6666",
+      "recorder": "Luilui6666",
+      "speakerQid": "Q301531",
+      "license": "CC BY-SA 4.0",
+      "profileUrl": "https://lingualibre.org/wiki/Q301531"
+    },
+    "canonni": {
+      "speaker": "CanonNi",
+      "recorder": "CanonNi",
+      "speakerQid": "Q1431140",
+      "license": "CC0",
+      "profileUrl": "https://lingualibre.org/wiki/Q1431140"
+    },
+    "levi": {
+      "speaker": "Levi Highway (列维劳德)",
+      "recorder": "列维劳德",
+      "speakerQid": "Q1573006",
+      "license": "CC0",
+      "profileUrl": "https://lingualibre.org/wiki/Q1573006"
+    },
+    "yunjiao": {
+      "speaker": "雲角",
+      "recorder": "雲角",
+      "speakerQid": "Q19614",
+      "license": "CC BY-SA 4.0",
+      "profileUrl": "https://lingualibre.org/wiki/Q19614"
+    }
+  },
+  "recordings": [
+    {
+      "wordId": "word-bangmang",
+      "form": "帮忙",
+      "pinyin": [
+        "bāng",
+        "máng"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-帮忙.wav",
+      "readingId": "reading-word-bangmang"
+    },
+    {
+      "wordId": "word-baba",
+      "form": "爸爸",
+      "pinyin": [
+        "bà",
+        "ba"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-爸爸.wav",
+      "readingId": "reading-word-baba"
+    },
+    {
+      "wordId": "word-bijiao",
+      "form": "比较",
+      "pinyin": [
+        "bǐ",
+        "jiào"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-比较.wav",
+      "readingId": "reading-word-bijiao"
+    },
+    {
+      "wordId": "word-canjia",
+      "form": "参加",
+      "pinyin": [
+        "cān",
+        "jiā"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-参加.wav",
+      "readingId": "reading-word-canjia"
+    },
+    {
+      "wordId": "word-dangran",
+      "form": "当然",
+      "pinyin": [
+        "dāng",
+        "rán"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-当然.wav",
+      "readingId": "reading-word-dangran"
+    },
+    {
+      "wordId": "word-cuowu",
+      "form": "错误",
+      "pinyin": [
+        "cuò",
+        "wù"
+      ],
+      "profile": "canonni",
+      "fileTitle": "LL-Q9192 (cmn)-CanonNi-错误.wav",
+      "readingId": "reading-word-cuowu"
+    },
+    {
+      "wordId": "word-come",
+      "form": "来",
+      "pinyin": [
+        "lái"
+      ],
+      "profile": "levi",
+      "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-来.wav",
+      "readingId": "reading-vocabulary-word-come"
+    },
+    {
+      "wordId": "word-danshi",
+      "form": "但是",
+      "pinyin": [
+        "dàn",
+        "shì"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-但是.wav",
+      "readingId": "reading-word-danshi"
+    },
+    {
+      "wordId": "word-drink",
+      "form": "喝",
+      "pinyin": [
+        "hē"
+      ],
+      "profile": "levi",
+      "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-喝.wav",
+      "readingId": "reading-vocabulary-word-drink"
+    },
+    {
+      "wordId": "word-dou",
+      "form": "都",
+      "pinyin": [
+        "dōu"
+      ],
+      "profile": "levi",
+      "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-都.wav",
+      "readingId": "reading-word-dou"
+    },
+    {
+      "wordId": "word-duoshaoqian",
+      "form": "多少钱",
+      "pinyin": [
+        "duō",
+        "shao",
+        "qián"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-多少钱?.wav",
+      "readingId": "reading-word-duoshaoqian"
+    },
+    {
+      "wordId": "word-faxian",
+      "form": "发现",
+      "pinyin": [
+        "fā",
+        "xiàn"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-发现.wav",
+      "readingId": "reading-word-faxian"
+    },
+    {
+      "wordId": "word-fuxi",
+      "form": "复习",
+      "pinyin": [
+        "fù",
+        "xí"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-复习.wav",
+      "readingId": "reading-word-fuxi"
+    },
+    {
+      "wordId": "word-gege",
+      "form": "哥哥",
+      "pinyin": [
+        "gē",
+        "ge"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-哥哥.wav",
+      "readingId": "reading-word-gege"
+    },
+    {
+      "wordId": "word-go",
+      "form": "去",
+      "pinyin": [
+        "qù"
+      ],
+      "profile": "levi",
+      "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-去.wav",
+      "readingId": "reading-vocabulary-word-go"
+    },
+    {
+      "wordId": "word-good",
+      "form": "好",
+      "pinyin": [
+        "hǎo"
+      ],
+      "profile": "levi",
+      "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-好.wav",
+      "readingId": "reading-vocabulary-word-good"
+    },
+    {
+      "wordId": "word-hai",
+      "form": "还",
+      "pinyin": [
+        "hái"
+      ],
+      "profile": "levi",
+      "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-还.wav",
+      "readingId": "reading-word-hai"
+    },
+    {
+      "wordId": "word-haochi",
+      "form": "好吃",
+      "pinyin": [
+        "hǎo",
+        "chī"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-好吃.wav",
+      "readingId": "reading-word-haochi"
+    },
+    {
+      "wordId": "word-home",
+      "form": "家",
+      "pinyin": [
+        "jiā"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-家.wav",
+      "readingId": "reading-vocabulary-word-home"
+    },
+    {
+      "wordId": "word-jide",
+      "form": "记得",
+      "pinyin": [
+        "jì",
+        "de"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-记得.wav",
+      "readingId": "reading-word-jide"
+    },
+    {
+      "wordId": "word-jianmian",
+      "form": "见面",
+      "pinyin": [
+        "jiàn",
+        "miàn"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-见面.wav",
+      "readingId": "reading-word-jianmian"
+    },
+    {
+      "wordId": "word-huodong",
+      "form": "活动",
+      "pinyin": [
+        "huó",
+        "dòng"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-活动.wav",
+      "readingId": "reading-word-huodong"
+    },
+    {
+      "wordId": "word-jieguo",
+      "form": "结果",
+      "pinyin": [
+        "jié",
+        "guǒ"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-结果.wav",
+      "readingId": "reading-word-jieguo"
+    },
+    {
+      "wordId": "word-jieshi",
+      "form": "解释",
+      "pinyin": [
+        "jiě",
+        "shì"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-解释.wav",
+      "readingId": "reading-word-jieshi"
+    },
+    {
+      "wordId": "word-jihua",
+      "form": "计划",
+      "pinyin": [
+        "jì",
+        "huà"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-计划.wav",
+      "readingId": "reading-word-jihua"
+    },
+    {
+      "wordId": "word-jixu",
+      "form": "继续",
+      "pinyin": [
+        "jì",
+        "xù"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-继续.wav",
+      "readingId": "reading-word-jixu"
+    },
+    {
+      "wordId": "word-jihui",
+      "form": "机会",
+      "pinyin": [
+        "jī",
+        "huì"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-机会.wav",
+      "readingId": "reading-word-jihui"
+    },
+    {
+      "wordId": "word-jingyan",
+      "form": "经验",
+      "pinyin": [
+        "jīng",
+        "yàn"
+      ],
+      "profile": "canonni",
+      "fileTitle": "LL-Q9192 (cmn)-CanonNi-经验.wav",
+      "readingId": "reading-word-jingyan"
+    },
+    {
+      "wordId": "word-juede",
+      "form": "觉得",
+      "pinyin": [
+        "jué",
+        "de"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-觉得.wav",
+      "readingId": "reading-word-juede"
+    },
+    {
+      "wordId": "word-laoshi",
+      "form": "老师",
+      "pinyin": [
+        "lǎo",
+        "shī"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-老师.wav",
+      "readingId": "reading-word-laoshi"
+    },
+    {
+      "wordId": "word-lianxi",
+      "form": "练习",
+      "pinyin": [
+        "liàn",
+        "xí"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-练习.wav",
+      "readingId": "reading-word-lianxi"
+    },
+    {
+      "wordId": "word-keyi",
+      "form": "可以",
+      "pinyin": [
+        "kě",
+        "yǐ"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-可以.wav",
+      "readingId": "reading-word-keyi"
+    },
+    {
+      "wordId": "word-ma",
+      "form": "吗",
+      "pinyin": [
+        "ma"
+      ],
+      "profile": "levi",
+      "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-吗.wav",
+      "readingId": "reading-vocabulary-word-ma"
+    },
+    {
+      "wordId": "word-mama",
+      "form": "妈妈",
+      "pinyin": [
+        "mā",
+        "ma"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-妈妈.wav",
+      "readingId": "reading-vocabulary-word-mama"
+    },
+    {
+      "wordId": "word-meitian",
+      "form": "每天",
+      "pinyin": [
+        "měi",
+        "tiān"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-每天.wav",
+      "readingId": "reading-word-meitian"
+    },
+    {
+      "wordId": "word-milk",
+      "form": "牛奶",
+      "pinyin": [
+        "niú",
+        "nǎi"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-牛奶.wav",
+      "readingId": "reading-vocabulary-word-milk"
+    },
+    {
+      "wordId": "word-mingbai",
+      "form": "明白",
+      "pinyin": [
+        "míng",
+        "bai"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-明白.wav",
+      "readingId": "reading-word-mingbai"
+    },
+    {
+      "wordId": "word-mingzi",
+      "form": "名字",
+      "pinyin": [
+        "míng",
+        "zi"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-名字.wav",
+      "readingId": "reading-vocabulary-word-mingzi"
+    },
+    {
+      "wordId": "word-niurou",
+      "form": "牛肉",
+      "pinyin": [
+        "niú",
+        "ròu"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-牛肉.wav",
+      "readingId": "reading-word-niurou"
+    },
+    {
+      "wordId": "word-pingguo",
+      "form": "苹果",
+      "pinyin": [
+        "píng",
+        "guǒ"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-苹果.wav",
+      "readingId": "reading-word-pingguo"
+    },
+    {
+      "wordId": "word-pianyi",
+      "form": "便宜",
+      "pinyin": [
+        "pián",
+        "yi"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-便宜.wav",
+      "readingId": "reading-word-pianyi"
+    },
+    {
+      "wordId": "word-pengyou",
+      "form": "朋友",
+      "pinyin": [
+        "péng",
+        "you"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-朋友.wav",
+      "readingId": "reading-word-pengyou"
+    },
+    {
+      "wordId": "word-qingchu",
+      "form": "清楚",
+      "pinyin": [
+        "qīng",
+        "chu"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-清楚.wav",
+      "readingId": "reading-word-qingchu"
+    },
+    {
+      "wordId": "word-renwei",
+      "form": "认为",
+      "pinyin": [
+        "rèn",
+        "wéi"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-认为.wav",
+      "readingId": "reading-word-renwei"
+    },
+    {
+      "wordId": "word-renshi",
+      "form": "认识",
+      "pinyin": [
+        "rèn",
+        "shi"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-认识.wav",
+      "readingId": "reading-word-renshi"
+    },
+    {
+      "wordId": "word-school",
+      "form": "学校",
+      "pinyin": [
+        "xué",
+        "xiào"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-学校.wav",
+      "readingId": "reading-vocabulary-word-school"
+    },
+    {
+      "wordId": "word-ruguo",
+      "form": "如果",
+      "pinyin": [
+        "rú",
+        "guǒ"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-如果.wav",
+      "readingId": "reading-word-ruguo"
+    },
+    {
+      "wordId": "word-renzhen",
+      "form": "认真",
+      "pinyin": [
+        "rèn",
+        "zhēn"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-认真.wav",
+      "readingId": "reading-word-renzhen"
+    },
+    {
+      "wordId": "word-shihou",
+      "form": "时候",
+      "pinyin": [
+        "shí",
+        "hou"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-时候.wav",
+      "readingId": "reading-word-shihou"
+    },
+    {
+      "wordId": "word-student",
+      "form": "学生",
+      "pinyin": [
+        "xué",
+        "sheng"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-学生.wav",
+      "readingId": "reading-vocabulary-word-student"
+    },
+    {
+      "wordId": "word-suoyi",
+      "form": "所以",
+      "pinyin": [
+        "suǒ",
+        "yǐ"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-所以.wav",
+      "readingId": "reading-word-suoyi"
+    },
+    {
+      "wordId": "word-tea",
+      "form": "茶",
+      "pinyin": [
+        "chá"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-茶.wav",
+      "readingId": "reading-vocabulary-word-tea"
+    },
+    {
+      "wordId": "word-tebie",
+      "form": "特别",
+      "pinyin": [
+        "tè",
+        "bié"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-特别.wav",
+      "readingId": "reading-word-tebie"
+    },
+    {
+      "wordId": "word-wan-shang",
+      "form": "晚上",
+      "pinyin": [
+        "wǎn",
+        "shang"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-晚上.wav",
+      "readingId": "reading-word-wan-shang"
+    },
+    {
+      "wordId": "word-wancheng",
+      "form": "完成",
+      "pinyin": [
+        "wán",
+        "chéng"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-完成.wav",
+      "readingId": "reading-word-wancheng"
+    },
+    {
+      "wordId": "word-wangji",
+      "form": "忘记",
+      "pinyin": [
+        "wàng",
+        "jì"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-忘记.wav",
+      "readingId": "reading-word-wangji"
+    },
+    {
+      "wordId": "word-want",
+      "form": "要",
+      "pinyin": [
+        "yào"
+      ],
+      "profile": "levi",
+      "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-要.wav",
+      "readingId": "reading-vocabulary-word-want"
+    },
+    {
+      "wordId": "word-want-think",
+      "form": "想",
+      "pinyin": [
+        "xiǎng"
+      ],
+      "profile": "levi",
+      "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-想.wav",
+      "readingId": "reading-vocabulary-word-want-think"
+    },
+    {
+      "wordId": "word-xianzai",
+      "form": "现在",
+      "pinyin": [
+        "xiàn",
+        "zài"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-现在.wav",
+      "readingId": "reading-word-xianzai"
+    },
+    {
+      "wordId": "word-xian",
+      "form": "先",
+      "pinyin": [
+        "xiān"
+      ],
+      "profile": "levi",
+      "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-先.wav",
+      "readingId": "reading-word-xian"
+    },
+    {
+      "wordId": "word-xiexie",
+      "form": "谢谢",
+      "pinyin": [
+        "xiè",
+        "xie"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-谢谢.wav",
+      "readingId": "reading-vocabulary-word-xiexie"
+    },
+    {
+      "wordId": "word-xihuan",
+      "form": "喜欢",
+      "pinyin": [
+        "xǐ",
+        "huān"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-喜欢.wav",
+      "readingId": "reading-word-xihuan"
+    },
+    {
+      "wordId": "word-xuanze",
+      "form": "选择",
+      "pinyin": [
+        "xuǎn",
+        "zé"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-选择.wav",
+      "readingId": "reading-word-xuanze"
+    },
+    {
+      "wordId": "word-xuyao",
+      "form": "需要",
+      "pinyin": [
+        "xū",
+        "yào"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-需要.wav",
+      "readingId": "reading-word-xuyao"
+    },
+    {
+      "wordId": "word-yifu",
+      "form": "衣服",
+      "pinyin": [
+        "yī",
+        "fu"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-衣服.wav",
+      "readingId": "reading-word-yifu"
+    },
+    {
+      "wordId": "word-yinggai",
+      "form": "应该",
+      "pinyin": [
+        "yīng",
+        "gāi"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-应该.wav",
+      "readingId": "reading-word-yinggai"
+    },
+    {
+      "wordId": "word-yinwei",
+      "form": "因为",
+      "pinyin": [
+        "yīn",
+        "wèi"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-因为.wav",
+      "readingId": "reading-word-yinwei"
+    },
+    {
+      "wordId": "word-yiqian",
+      "form": "以前",
+      "pinyin": [
+        "yǐ",
+        "qián"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-以前.wav",
+      "readingId": "reading-word-yiqian"
+    },
+    {
+      "wordId": "word-youbian",
+      "form": "右边",
+      "pinyin": [
+        "yòu",
+        "bian"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-右边.wav",
+      "readingId": "reading-word-youbian"
+    },
+    {
+      "wordId": "word-zao-shang",
+      "form": "早上",
+      "pinyin": [
+        "zǎo",
+        "shang"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-早上.wav",
+      "readingId": "reading-word-zao-shang"
+    },
+    {
+      "wordId": "word-zhongyao",
+      "form": "重要",
+      "pinyin": [
+        "zhòng",
+        "yào"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-重要.wav",
+      "readingId": "reading-word-zhongyao"
+    },
+    {
+      "wordId": "word-zhongyu",
+      "form": "终于",
+      "pinyin": [
+        "zhōng",
+        "yú"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-终于.wav",
+      "readingId": "reading-word-zhongyu"
+    },
+    {
+      "wordId": "word-zhongguo",
+      "form": "中国",
+      "pinyin": [
+        "zhōng",
+        "guó"
+      ],
+      "profile": "jouketou",
+      "fileTitle": "LL-Q9192 (cmn)-Jouketou-中国.wav",
+      "readingId": "reading-vocabulary-word-zhongguo"
+    },
+    {
+      "wordId": "word-zuobian",
+      "form": "左边",
+      "pinyin": [
+        "zuǒ",
+        "bian"
+      ],
+      "profile": "luilui",
+      "fileTitle": "LL-Q9192 (cmn)-Luilui6666-左边.wav",
+      "readingId": "reading-word-zuobian"
+    },
+    {
+      "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-在.wav",
+      "profile": "levi",
+      "wordId": "word-at",
+      "pinyin": [
+        "zài"
+      ],
+      "form": "在",
+      "readingId": "reading-vocabulary-word-at"
+    },
+    {
+      "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-吃.wav",
+      "profile": "levi",
+      "wordId": "word-eat",
+      "pinyin": [
+        "chī"
+      ],
+      "form": "吃",
+      "readingId": "reading-vocabulary-word-eat"
+    },
+    {
+      "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-是.wav",
+      "profile": "levi",
+      "wordId": "word-shi",
+      "pinyin": [
+        "shì"
+      ],
+      "form": "是",
+      "readingId": "reading-vocabulary-word-shi"
+    },
+    {
+      "fileTitle": "LL-Q9192 (cmn)-雲角-水.wav",
+      "profile": "yunjiao",
+      "wordId": "word-water",
+      "pinyin": [
+        "shuǐ"
+      ],
+      "form": "水",
+      "readingId": "reading-vocabulary-word-water"
+    }
+  ]
+}

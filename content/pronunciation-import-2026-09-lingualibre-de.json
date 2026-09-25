@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "migrationFile": "migrations/0021_add_lingualibre_de_pronunciation.sql",
+  "profiles": {
+    "levi": {
+      "speaker": "Levi Highway (列维劳德)",
+      "recorder": "列维劳德",
+      "speakerQid": "Q1573006",
+      "license": "CC0",
+      "profileUrl": "https://lingualibre.org/wiki/Q1573006"
+    }
+  },
+  "recordings": [
+    {
+      "wordId": "word-de",
+      "form": "的",
+      "pinyin": ["de"],
+      "readingId": "reading-vocabulary-word-de",
+      "profile": "levi",
+      "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-的.wav"
+    }
+  ]
+}

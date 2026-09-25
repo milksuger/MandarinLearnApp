@@ -32,19 +32,17 @@ Do not model a vocabulary item as one front/back flashcard row. Keep reusable la
 
 Keep MIT-licensed application code, externally licensed datasets, stroke-recognition packages, model weights, and audio assets as separable components with explicit notices. Do not commit bulk source data until its redistribution terms and attribution are recorded. Store per-source license and provenance independently of the app's MIT license.
 
-## Pronunciation quality policy
+## Pronunciation and audio policy
 
-Correctness takes priority over always producing sound. An audio source is not a pronunciation authority by itself:
+The user wants as many real Mandarin recordings as can be found and reused without fees, while keeping the source/review path for future correction. Do not hold each source-verified recording out of the learner app while waiting for an individual manual listening audit. Keep these facts distinct:
 
-1. Store audio against a reviewed reading and context phrase, never only against an ambiguous character.
-2. Have a qualified Mandarin speaker review the exact recording or locally generated candidate against tone contrasts, tone sandhi, neutral tone, and polyphonic words in context before approval.
-3. Store approved audio as a versioned asset. Record the exact text and reading ID, source or model/voice, checkpoint, asset hash, license/terms, reviewer state, and replacement history.
-4. Runtime playback and offline cache may use only approved assets for the exact same reading and text. Do not synthesize a different or ambiguous reading as a fallback.
-5. If no approved asset exists, keep the lesson usable with visible tone-marked Pinyin and “audio not available.” Do not play an unverified sound.
+1. Attach a recording to a contextual reading and exact target word, not just to an ambiguous character.
+2. Before bundling, verify exact source transcription/title and language, file-specific speaker/contributor and license metadata, MIME type, original file hash, and derivative hash. Preserve the untouched original and clear attribution.
+3. Record provenance/source attestation separately from human pronunciation review. A source page identifying a Mandarin speaker and exact word is not an official certification or a listening-quality guarantee. Keep an admin route to reject or replace an asset.
+4. Prefer the exact licensed human recording for the same reading. Never play an unrelated word, splice syllables, or present synthetic audio as human.
+5. When no matching source recording exists, use the learner device's installed `zh-CN` speech voice only if one is available and label it as device-generated speech. Voice quality and polyphonic interpretation can vary. If unavailable, retain the Pinyin and show audio unavailable.
 
-The user has set a zero-paid-service rule. Do not call a cloud TTS or speech API at runtime, do not enable paid Workers AI, and do not silently switch providers when a quota is exhausted. The product should use versioned, approved recordings or locally generated audio assets only when their voice/model, checkpoint, output-use terms, source text, and reviewer approval are recorded. Batch generation on a developer-controlled machine may be evaluated as an optional open-source workflow; it is not a runtime dependency or an automatic quality approval. Device Web Speech synthesis is not an approved pronunciation source because voice and reading can vary by platform. If an exact, reviewed audio asset is unavailable, show Pinyin and “audio not available” instead of playing a guessed voice.
-
-The quality gate is a contextual Mandarin listening review covering tone contrasts, tone sandhi, neutral tone, and polyphonic words. No TTS candidate is selected or certified by this baseline. Free operation is a constraint, not proof of pronunciation quality; audio coverage must grow only as assets pass review.
+The user has set a zero-paid-service rule. Do not call a cloud TTS/speech API, enable paid Workers AI, or silently switch to a paid provider. Device speech is local, free, and an explicitly synthetic fallback, not a pronunciation authority. No promise should imply that every supported operating system provides an identical or certified voice. Exact source audio must remain licensed and attributed; CC BY-SA derivatives keep the same terms and attribution.
 
 ## Handwriting recognition scope
 
@@ -58,7 +56,7 @@ Prototype and implementation acceptance must include finger and third-party styl
 
 ## HSK and course content
 
-The [official Chinese Test Service HSK page](https://www.chinesetest.cn/hsk) describes the New HSK as an expansion from the existing six-level system to three stages and nine levels, with separate levels 1–6 and 7–9 navigation. The app therefore keeps **HSK 2.0 (six levels)** and **HSK 3.0 (three stages/nine levels)** as separate versioned paths. The current release publishes only those structural slots; it does not copy the official syllabus, word list, grammar, or examples because their bulk redistribution terms have not been confirmed. Keep the everyday-vocabulary path independent; both paths can refer to the same reusable content.
+The [official Chinese Test Service HSK page](https://www.chinesetest.cn/hsk) describes the New HSK as an expansion from the existing six-level system to three stages and nine levels, with separate levels 1–6 and 7–9 navigation. The app keeps **HSK 2.0 (six levels)** and **HSK 3.0 (three stages/nine levels)** as separate versioned paths. The current 141-word publication includes original app-authored placements across HSK 2.0 levels 1–6 and HSK 3.0 levels 1–9, with additional upper levels added in migrations 0014–0015. This is a growing learning path, not the complete official syllabus. It does not copy official word lists, grammar, or example sentences because bulk redistribution terms have not been confirmed. Keep everyday-vocabulary lessons independent; both paths can refer to the same reusable content.
 
 The [CC-CIDICT download page](https://cidict.org/download/) offers a UTF-8 U8 file and SQL export; its current page lists 125,318 entries in version 1.26, released 2026-08-26. Its [license terms](https://cidict.org/license-terms-of-use/) grant redistribution/adaptation under CC BY-SA 4.0 and require attribution to CC-CEDICT contributors, Harmony Mandarin, and CC-CIDICT; derivatives must retain CC BY-SA 4.0. The terms also disclaim data accuracy/fitness warranties, so imports should preserve exact source version and individual gloss provenance, and should not mislabel community dictionary entries as official HSK content. This version is a potential source for daily-life definitions, not currently bundled in full.
 
@@ -111,4 +109,4 @@ Use Cloudflare Pages for the web shell, Workers for versioned API endpoints, D1 
 - Choose account authentication and decide whether registration is open from day one.
 - Set retention periods for attempt summaries, audit logs, and any consented diagnostic sample.
 - Benchmark HanziLookupJS/Rust-WASM and the separate stroke evaluator on the target iPad and representative phones; finish license notices for each code/data component before bundling them.
-- Approve an audio-source process (for example, appropriately licensed native-speaker recordings or quality-reviewed assets generated locally from a license-verified open model). Do not enable a paid or unreviewed runtime TTS fallback.
+- Use exact licensed recordings when available and keep per-file provenance and quality distinct. The product may use the user's local built-in `zh-CN` system voice for entries without an exact recording; do not use paid remote TTS or describe generated speech as a reviewed source recording.

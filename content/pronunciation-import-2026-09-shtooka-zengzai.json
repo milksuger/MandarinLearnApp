@@ -1,0 +1,31 @@
+{
+  "version": "1.0.0",
+  "migrationFile": "migrations/0020_add_shtooka_zhengzai_audio.sql",
+  "profiles": {
+    "shtooka": {
+      "speaker": "Shtooka Mandarin speaker; see file-specific voice description",
+      "creator": "Wei Gao, Vion Nicolas",
+      "artist": "Wei Gao, Vion Nicolas",
+      "license": "CC BY 2.0 fr",
+      "profileUrl": "https://commons.wikimedia.org/wiki/Commons:Shtooka",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Commons:Shtooka",
+      "sourceId": "source-commons-shtooka-by20fr",
+      "sourceName": "Wikimedia Commons Shtooka Mandarin pronunciations (CC BY 2.0 fr)",
+      "sourceNotes": "The Commons Shtooka file page supplies the exact simplified word and marked pinyin, per-file speaker description, creator, license, and original file. Voice details must be taken from each file page; this collection includes different speakers and regions.",
+      "verificationMethod": "Commons file title and page description match the word and marked pinyin; creator, license URL, MIME type and downloaded original SHA-1 verified against Wikimedia Commons metadata."
+    }
+  },
+  "recordings": [
+    {
+      "wordId": "word-zhengzai",
+      "form": "正在",
+      "pinyin": ["zhèng", "zài"],
+      "readingId": "reading-word-zhengzai",
+      "profile": "shtooka",
+      "sourceType": "shtooka",
+      "fileTitle": "Zh-zhèngzài.ogg",
+      "descriptionCheck": "Pronunciation of \"zhèngzài\" (正在) in Chinese.",
+      "speakerIdentity": "Male voice; Commons says the speaker is from Beijing, China."
+    }
+  ]
+}
