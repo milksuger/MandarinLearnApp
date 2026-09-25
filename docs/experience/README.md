@@ -45,6 +45,7 @@ This is the repository's working knowledge base for future Codex sessions and co
 - Do not use local-only D1 or IndexedDB evidence as proof that production was updated. Verify the production API after a deploy.
 - Tool failures are not root-cause evidence. For example, AnySearch may return a temporary capability error; disclose it, then use a suitable public/primary-source fallback and mark what was directly verified.
 - TypeSafe/Jev returns structured judgments to support choices. A probability/confidence score is not proof of truth; keep deterministic checks and source evidence in code and treat Jev's choice as a prioritization aid.
+- Open-ended productive-language responses belong to the authenticated learner and a stable `scenario_output` activity ID. Store the response and self-assessment server-side; never send private writing to AI or expose its text in admin reports. Admin progress may show completion and self-assessment only.
 - Existing vocabulary audio coverage is partial. Playback should prefer source-attested assets and clearly label built-in device speech as the free fallback. Device speech is not a downloadable audio asset and can vary by operating system/installed voice.
 
 ### 2026-09-25 course and playback update
@@ -75,3 +76,9 @@ This is the repository's working knowledge base for future Codex sessions and co
 - A full Wikimedia Commons title scan covered the 5,160-file Chinese pronunciation category and the 4,122-file Lingua Libre Mandarin category. The available `面条儿` clip is an erhua/form variant and is not an exact substitute for `面条`.
 - Source/licensing attestation is independent from listening review. This user explicitly asked not to make per-file human review a publication blocker; keep admin correction/rejection tools and never describe a source-verified clip as officially certified or manually reviewed.
 - AnySearch was used for candidate discovery and Jev was used once to prioritize the safe search policy. Jev's structured judgment is a choice aid only; Commons metadata and source hashes remain the evidence.
+
+### 2026-09-25 productive-language activity
+
+- Migration `0026` adds private per-learner scenario responses and an authored fifth lesson step for four introductory daily-life units. Response text is 1–1200 characters; self-assessment is stored separately from correctness and is not an automatic score.
+- Both read and write routes require authentication and a currently published activity. The read route returns only the signed-in learner's response. The admin progress view must not select or reveal `response_text`.
+- Completing an activity is monotonic: general progress updates may advance a cursor but cannot downgrade a completed activity to in-progress.

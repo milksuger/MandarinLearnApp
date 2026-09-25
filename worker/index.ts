@@ -397,13 +397,53 @@ app.post("/api/v1/activities/:activityId/progress", async (c) => {
   if (activity.itemCount > 0 && body.currentItemOrdinal >= activity.itemCount) return jsonError("invalid_cursor", "Posisi aktivitas sudah melewati materinya.");
   await c.env.DB.prepare(`INSERT INTO learner_activity_progress(user_id, activity_id, state, current_item_ordinal, started_at, completed_at)
     VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), CASE WHEN ? = 'completed' THEN strftime('%Y-%m-%dT%H:%M:%fZ','now') ELSE NULL END)
-    ON CONFLICT(user_id, activity_id) DO UPDATE SET state = excluded.state,
-      current_item_ordinal = excluded.current_item_ordinal,
+    ON CONFLICT(user_id, activity_id) DO UPDATE SET
+      state = CASE WHEN learner_activity_progress.state = 'completed' THEN 'completed' ELSE excluded.state END,
+      current_item_ordinal = CASE WHEN learner_activity_progress.state = 'completed' THEN learner_activity_progress.current_item_ordinal ELSE excluded.current_item_ordinal END,
       started_at = COALESCE(learner_activity_progress.started_at, excluded.started_at),
-      completed_at = CASE WHEN excluded.state = 'completed' THEN excluded.completed_at ELSE NULL END,
+      completed_at = CASE WHEN learner_activity_progress.state = 'completed' THEN learner_activity_progress.completed_at WHEN excluded.state = 'completed' THEN excluded.completed_at ELSE NULL END,
       updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')`)
     .bind(principal.id, activityId, body.state, body.currentItemOrdinal, body.state).run();
   return c.json({ ok: true, activityId, ...body });
+});
+
+app.get("/api/v1/scenario-responses/:activityId", async (c) => {
+  const principal = await requirePrincipal(c);
+  if (!principal) return jsonError("unauthenticated", "Silakan masuk terlebih dahulu.", 401);
+  const activityId = c.req.param("activityId");
+  const activity = await c.env.DB.prepare(`SELECT ca.id FROM curriculum_activities ca JOIN curriculum_units u ON u.id = ca.unit_id
+    JOIN curricula c ON c.id = u.curriculum_id WHERE ca.id = ? AND ca.activity_kind = 'scenario_output'
+    AND ca.status = 'published' AND u.status = 'published' AND c.status = 'published'`)
+    .bind(activityId).first();
+  if (!activity) return jsonError("activity_unavailable", "Aktivitas ini belum tersedia.", 404);
+  const response = await c.env.DB.prepare(`SELECT response_text AS responseText, self_assessment AS selfAssessment,
+    created_at AS createdAt, updated_at AS updatedAt FROM scenario_responses WHERE user_id = ? AND activity_id = ?`)
+    .bind(principal.id, activityId).first();
+  return c.json({ response: response ?? null });
+});
+
+app.post("/api/v1/scenario-responses/:activityId", async (c) => {
+  const principal = await requirePrincipal(c);
+  if (!principal) return jsonError("unauthenticated", "Silakan masuk terlebih dahulu.", 401);
+  const activityId = c.req.param("activityId");
+  const body = parseBody(z.object({ responseText: z.string().trim().min(1).max(1200), selfAssessment: z.enum(["confident","repeat","unsure"]) }).strict(), await c.req.json().catch(() => null));
+  if (!body) return jsonError("invalid_scenario_response", "Tulis jawaban singkat dan pilih penilaian dirimu.");
+  const activity = await c.env.DB.prepare(`SELECT id FROM curriculum_activities ca JOIN curriculum_units u ON u.id = ca.unit_id
+    JOIN curricula c ON c.id = u.curriculum_id WHERE ca.id = ? AND ca.activity_kind = 'scenario_output'
+      AND ca.status = 'published' AND u.status = 'published' AND c.status = 'published'`).bind(activityId).first();
+  if (!activity) return jsonError("activity_unavailable", "Aktivitas ini belum tersedia.", 404);
+  await c.env.DB.batch([
+    c.env.DB.prepare(`INSERT INTO scenario_responses(id,user_id,activity_id,response_text,self_assessment)
+      VALUES (?,?,?,?,?) ON CONFLICT(user_id,activity_id) DO UPDATE SET response_text=excluded.response_text,
+      self_assessment=excluded.self_assessment, updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`)
+      .bind(crypto.randomUUID(), principal.id, activityId, body.responseText, body.selfAssessment),
+    c.env.DB.prepare(`INSERT INTO learner_activity_progress(user_id,activity_id,state,current_item_ordinal,started_at,completed_at)
+      VALUES (?,?,'completed',0,strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+      ON CONFLICT(user_id,activity_id) DO UPDATE SET state='completed',current_item_ordinal=0,
+      completed_at=COALESCE(learner_activity_progress.completed_at,excluded.completed_at),
+      updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`).bind(principal.id, activityId),
+  ]);
+  return c.json({ ok: true, activityId, saved: true });
 });
 
 app.get("/api/v1/vocabulary/:entryId", async (c) => {

@@ -14,6 +14,8 @@ To regenerate an additive course migration, pass both the source JSON and a new 
 
 Structured scenario content is authored in [`content/scenario-content-2026-09.json`](../content/scenario-content-2026-09.json) and shipped as immutable snapshots in migrations `0024` and `0025`. This release adds reusable grammar points, dialogues, short readings, and an optional app-authored starting-point diagnostic. Their use of HSK-like complexity is an internal learning recommendation only; it does not reproduce the official test, list, or syllabus. A future content release must add a new source JSON version and additive migration, validate that each Mandarin text matches its pinyin syllable count, and preserve the same CC BY 4.0 attribution.
 
+Migration `0026` adds original scenario-output prompts to four introductory daily-life units as a fifth lesson step. Learners can save a short Mandarin response and self-assessment to their authenticated account. Responses are private to that learner; admin reporting receives completion and self-assessment status only, never the response text. This is not automated correction and does not claim that the sentence is correct.
+
 Hanzi Writer character geometry is redistributed unchanged from `hanzi-writer-data` 2.0.1 under the Arphic Public License. The dataset is not represented as an official education-ministry standard. The 262 simplified character files, source URLs, hashes, counts, and version are recorded in `content/stroke-assets-manifest.json`.
 
 ## Human pronunciation audio

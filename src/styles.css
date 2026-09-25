@@ -439,6 +439,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .activity-state-in_progress { background: #fff5df; color: #ad7300; }
 .scenario-section { margin-top: 18px; }
 .scenario-section > h3 { margin: 0 0 10px; font-size: 15px; }
+.scenario-writing-card { max-width: 680px; padding: 16px; border: 1px solid #ece6d7; border-radius: 15px; background: #fffdf7; }
+.scenario-writing-card > p { margin: 0 0 12px; color: #606a7b; font-size: 12px; line-height: 1.65; }
+.scenario-writing-card > label { display: grid; gap: 7px; font-size: 12px; font-weight: 750; }
+.scenario-writing-card textarea { width: 100%; min-height: 112px; resize: vertical; padding: 12px; border: 1px solid #dedfe5; border-radius: 12px; color: var(--ink); background: #fff; font: inherit; line-height: 1.7; }
+.scenario-writing-card textarea:focus-visible { outline: 3px solid #f7df9e; border-color: #c28b00; }
+.scenario-response-meta { margin: 6px 0 13px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; color: #7d8290; font-size: 10px; }
+.scenario-writing-card fieldset { margin: 0 0 14px; padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 8px 14px; border: 1px solid #e7e8ed; border-radius: 12px; }
+.scenario-writing-card legend { padding: 0 5px; color: #555d6d; font-size: 11px; font-weight: 700; }
+.scenario-writing-card fieldset label { display: inline-flex; align-items: center; gap: 6px; color: #545d6f; font-size: 11px; }
+.scenario-writing-card input { accent-color: #bd8500; }
 .grammar-card, .story-paragraph { padding: 15px; border: 1px solid #eceef3; border-radius: 16px; background: #fff; margin-bottom: 9px; }
 .grammar-card h4 { margin: 8px 0; font-size: 14px; }
 .grammar-card > strong { display: block; color: #28365a; font-size: 20px; margin: 9px 0; }
@@ -667,7 +677,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .freehand-side { display: flex; }
 }
 
-.lesson-stepper { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0 0 10px; }
+.lesson-stepper { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 0 0 10px; }
 .lesson-step { min-width: 0; min-height: 46px; padding: 7px 9px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 12px; color: #737889; background: white; font-size: 11px; font-weight: 750; text-align: left; cursor: pointer; }
 .lesson-step:disabled { opacity: .55; cursor: not-allowed; }
 .lesson-step > span { width: 24px; height: 24px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; background: #f1f2f6; color: #6c7180; font-size: 10px; }
