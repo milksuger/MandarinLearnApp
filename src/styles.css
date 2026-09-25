@@ -106,7 +106,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .empty-icon svg { width: 21px; }
 .hsk-level-strip { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; }
 .hsk-level-strip span { padding: 7px 9px; border: 1px solid #e8eaf1; border-radius: 9px; color: #696f82; background: #fafbfc; font-size: 9px; font-weight: 700; }
-.mobile-nav { position: fixed; inset: auto 0 0; z-index: 40; width: min(100%, 860px); margin-inline: auto; padding: 6px 14px calc(6px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid rgba(232,228,221,.9); border-bottom: 0; border-radius: 18px 18px 0 0; background: rgba(255,254,251,.97); box-shadow: 0 -8px 26px rgba(40,43,58,.09); backdrop-filter: blur(20px); }
+.mobile-nav { position: fixed; inset: auto 0 0; z-index: 40; width: min(100%, 1120px); margin-inline: auto; padding: 6px 14px calc(6px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid rgba(232,228,221,.9); border-bottom: 0; border-radius: 18px 18px 0 0; background: rgba(255,254,251,.97); box-shadow: 0 -8px 26px rgba(40,43,58,.09); backdrop-filter: blur(20px); }
 .mobile-nav a { min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #747b8b; font-size: 11px; font-weight: 700; touch-action: manipulation; }
 .mobile-nav svg { width: 21px; height: 21px; stroke-width: 1.9; }
 .mobile-nav a.active { color: #a95f39; }
