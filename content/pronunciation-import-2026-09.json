@@ -1,0 +1,35 @@
+{
+  "version": "1.0.0",
+  "courseFile": "content/course-expansion-2026-09.json",
+  "migrationFile": "migrations/0013_add_native_mandarin_audio.sql",
+  "commonsCategory": "https://commons.wikimedia.org/wiki/Category:Lingua_Libre_pronunciation-cmn",
+  "profiles": {
+    "levi": { "speaker": "Levi Highway (列维劳德)", "recorder": "列维劳德", "speakerQid": "Q1573006", "license": "CC0", "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/", "profileUrl": "https://lingualibre.org/wiki/Q1573006" },
+    "wang": { "speaker": "Wang Cheng", "recorder": "Yug", "speakerQid": "Q1832", "license": "CC0", "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/", "profileUrl": "https://lingualibre.org/wiki/Q1832" },
+    "yunjiao": { "speaker": "雲角", "recorder": "雲角", "speakerQid": "Q19614", "license": "CC BY-SA 4.0", "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/", "profileUrl": "https://lingualibre.org/wiki/Q19614" },
+    "vicky": { "speaker": "Vickylin77amis", "recorder": "Vickylin77amis", "speakerQid": "Q19761", "license": "CC BY-SA 4.0", "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/", "profileUrl": "https://lingualibre.org/wiki/Q19761" },
+    "jouketou": { "speaker": "Jouketou", "recorder": "Jouketou", "speakerQid": "Q1332695", "license": "CC BY-SA 4.0", "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/", "profileUrl": "https://lingualibre.org/wiki/Q1332695" }
+  },
+  "recordings": [
+    { "wordId": "word-xiayu", "profile": "levi", "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-下雨.wav" },
+    { "wordId": "word-jiao", "profile": "levi", "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-叫.wav" },
+    { "wordId": "word-ye", "profile": "levi", "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-也.wav" },
+    { "wordId": "word-mang", "profile": "levi", "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-忙.wav" },
+    { "wordId": "word-zuo", "profile": "levi", "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-做.wav" },
+    { "wordId": "word-cai", "profile": "levi", "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-菜.wav" },
+    { "wordId": "word-mai", "profile": "levi", "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-买.wav" },
+    { "wordId": "word-gui", "profile": "levi", "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-贵.wav" },
+    { "wordId": "word-re", "profile": "levi", "fileTitle": "LL-Q9192 (cmn)-Levi Highway (列维劳德)-热.wav" },
+    { "wordId": "word-shenme", "profile": "wang", "fileTitle": "LL-Q9192 (cmn)-Wang Cheng (Yug)-什么.wav" },
+    { "wordId": "word-nimen", "profile": "wang", "fileTitle": "LL-Q9192 (cmn)-Wang Cheng (Yug)-你们.wav" },
+    { "wordId": "word-women", "profile": "wang", "fileTitle": "LL-Q9192 (cmn)-Wang Cheng (Yug)-我们.wav" },
+    { "wordId": "word-zheli", "profile": "wang", "fileTitle": "LL-Q9192 (cmn)-Wang Cheng (Yug)-这里.wav" },
+    { "wordId": "word-nali-there", "profile": "wang", "fileTitle": "LL-Q9192 (cmn)-Wang Cheng (Yug)-那里.wav" },
+    { "wordId": "word-nali", "profile": "yunjiao", "fileTitle": "LL-Q9192 (cmn)-雲角-哪里.wav" },
+    { "wordId": "word-yu", "profile": "yunjiao", "fileTitle": "LL-Q9192 (cmn)-雲角-鱼.wav" },
+    { "wordId": "word-zou", "profile": "yunjiao", "fileTitle": "LL-Q9192 (cmn)-雲角-走.wav" },
+    { "wordId": "word-jintian", "profile": "vicky", "fileTitle": "LL-Q9192 (cmn)-Vickylin77amis-今天.wav" },
+    { "wordId": "word-mingtian", "profile": "vicky", "fileTitle": "LL-Q9192 (cmn)-Vickylin77amis-明天.wav" },
+    { "wordId": "word-shuiguo", "profile": "jouketou", "fileTitle": "LL-Q9192 (cmn)-Jouketou-水果.wav" }
+  ]
+}
