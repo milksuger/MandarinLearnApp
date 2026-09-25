@@ -18,6 +18,8 @@ Migration `0026` adds original scenario-output prompts to four introductory dail
 
 Hanzi Writer character geometry is redistributed unchanged from `hanzi-writer-data` 2.0.1 under the Arphic Public License. The dataset is not represented as an official education-ministry standard. The 262 simplified character files, source URLs, hashes, counts, and version are recorded in `content/stroke-assets-manifest.json`.
 
+The login-page learning companion at `public/images/auth-learning-companion.png` is an original AI-generated illustration made with OpenAI ImageGen on 2026-09-25. It was generated for this project without third-party reference artwork; it contains no logos or copied course assets.
+
 ## Human pronunciation audio
 
 As of migrations `0013`–`0021`, exact source-recorded human audio covers 137 of the 141 published simplified vocabulary forms. The manifest contains 139 audio entries; a word can have multiple readings or an alternate audio record. The public D1 database also contains one legacy duplicate alias of the same `你` recording. Audio is associated with a contextual reading rather than a character alone.
