@@ -71,10 +71,11 @@ This is the repository's working knowledge base for future Codex sessions and co
 
 ### 2026-09-25 pronunciation expansion
 
-- Exact human recording coverage is 137/141 published word forms. The Commons manifest contains 139 entries; one legacy DB row is an alternate reading alias of an already represented `你` recording. Four exact word forms remain without a redistributable source recording: `已经`, `早到`, `还没`, and `面条`.
+- At the 2026-09-25 production audit, source-recorded human audio covers 134/138 distinct published word forms. The Commons manifest contains 139 product files; the production D1 database has 140 approved rows, including one legacy alias for an already represented `你` recording. Manual listening status is independent: 3 rows passed, 137 remain pending, and none failed. See [`docs/research/audio-coverage-2026-09-25.md`](../research/audio-coverage-2026-09-25.md) for the read-only query scope and current results.
 - New imports `0016`–`0021` include exact Lingua Libre and Shtooka word files. Supported licenses now include CC0, CC BY-SA 4.0, CC BY 2.0 fr, and CC BY-SA 3.0 US. Preserve the exact file metadata, creator/speaker, license, hash, and original audio for each item.
 - A full Wikimedia Commons title scan covered the 5,160-file Chinese pronunciation category and the 4,122-file Lingua Libre Mandarin category. The available `面条儿` clip is an erhua/form variant and is not an exact substitute for `面条`.
 - Source/licensing attestation is independent from listening review. This user explicitly asked not to make per-file human review a publication blocker; keep admin correction/rejection tools and never describe a source-verified clip as officially certified or manually reviewed.
+- A Commons candidate for `已经` is transcribed `yǐjing` (neutral final syllable), while the course teaches `yǐ jīng`; do not attach it to that reading without representing and labeling the alternate reading. A public HSK audio mirror has a matching file but only states generic `CC-by-sa` terms and refers to an upstream license page that could not be verified; do not bundle it until exact terms and attribution are confirmed. The other three missing forms still have no verified exact recording candidate.
 - AnySearch was used for candidate discovery and Jev was used once to prioritize the safe search policy. Jev's structured judgment is a choice aid only; Commons metadata and source hashes remain the evidence.
 
 ### 2026-09-25 productive-language activity
