@@ -1108,9 +1108,19 @@ app.get("/api/v1/admin/learners/:learnerId", async (c) => {
     c.env.DB.prepare(`SELECT ca.id, ca.title, ca.activity_kind AS activityKind,
       cu.title AS unitTitle, cu.level_number AS levelNumber, cr.name AS curriculumName,
       COALESCE(lap.state, 'not_started') AS state,
-      lap.current_item_ordinal AS currentItemOrdinal, lap.updated_at AS updatedAt,
+      lap.current_item_ordinal AS currentItemOrdinal, COALESCE(lap.correct_count, 0) AS correctCount, lap.updated_at AS updatedAt,
       lap.completed_at AS completedAt,
-      (SELECT COUNT(*) FROM curriculum_activity_items cai WHERE cai.activity_id = ca.id) AS itemCount
+      (SELECT COUNT(*) FROM curriculum_activity_items cai WHERE cai.activity_id = ca.id) AS itemCount,
+      CASE WHEN ca.activity_kind = 'writing' THEN (
+        SELECT COUNT(DISTINCT ch.id) FROM curriculum_placements cp
+        LEFT JOIN vocabulary_characters vc ON vc.vocabulary_id = cp.vocabulary_id
+        JOIN characters ch ON ch.id = COALESCE(cp.character_id, vc.character_id)
+        WHERE cp.unit_id = ca.unit_id AND ch.status = 'approved' AND ch.stroke_data_status = 'approved'
+      ) ELSE 0 END AS writingItemCount,
+      CASE WHEN ca.activity_kind = 'writing' THEN (
+        SELECT COUNT(*) FROM learner_activity_character_progress lcp
+        WHERE lcp.user_id = ? AND lcp.activity_id = ca.id
+      ) ELSE 0 END AS writingCompletedCount
       FROM curriculum_activities ca
       JOIN curriculum_units cu ON cu.id = ca.unit_id
       JOIN curricula cr ON cr.id = cu.curriculum_id
@@ -1118,7 +1128,7 @@ app.get("/api/v1/admin/learners/:learnerId", async (c) => {
       WHERE ca.status = 'published' AND ((EXISTS (
         SELECT 1 FROM learning_attempts la WHERE la.user_id = ? AND la.activity_id = ca.id
       )) OR lap.state IS NOT NULL)
-      ORDER BY COALESCE(lap.updated_at, lap.completed_at) DESC LIMIT 100`).bind(learnerId, learnerId).all(),
+      ORDER BY COALESCE(lap.updated_at, lap.completed_at) DESC LIMIT 100`).bind(learnerId, learnerId, learnerId).all(),
     c.env.DB.prepare(`SELECT id, assessment_version AS assessmentVersion, answered_count AS answered,
       correct_count AS correct, recommendation, explanation, completed_at AS completedAt
       FROM placement_sessions WHERE user_id = ? ORDER BY completed_at DESC LIMIT 20`).bind(learnerId).all(),
