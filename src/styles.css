@@ -32,7 +32,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .learner-frame { min-height: 100dvh; padding-bottom: 86px; }
 .learner-topbar { height: 74px; padding: 0 max(22px, calc((100vw - 1120px) / 2)); background: rgba(255,255,255,.88); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 30; backdrop-filter: blur(18px); }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 800; letter-spacing: -.035em; }
-.brand-mark { display: inline-grid; width: 35px; height: 35px; place-items: center; border-radius: 12px; background: var(--amber); color: var(--ink); font-size: 19px; font-weight: 800; box-shadow: 0 3px 8px rgba(255,184,0,.24); }
+.brand-mark { display: block; width: 35px; height: 35px; flex: 0 0 35px; border-radius: 12px; object-fit: contain; filter: drop-shadow(0 3px 5px rgba(173, 99, 42, .16)); }
 .topbar-actions { display: flex; align-items: center; gap: 13px; }
 .topbar-community { min-height: 44px; padding: 0 11px; display: inline-flex; align-items: center; gap: 7px; border-radius: 12px; color: #646a7a; font-size: 12px; font-weight: 750; }
 .topbar-community:hover { background: #f2f3f7; color: var(--ink); }
@@ -537,7 +537,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .learner-frame { padding-bottom: calc(69px + env(safe-area-inset-bottom)); }
   .learner-topbar { height: 61px; padding: 0 15px; }
   .brand { gap: 8px; font-size: 13px; }
-  .brand-mark { width: 32px; height: 32px; border-radius: 11px; font-size: 17px; }
+  .brand-mark { width: 32px; height: 32px; flex-basis: 32px; border-radius: 11px; }
   .sync-pill { padding: 6px 8px; font-size: 0; gap: 4px; }
   .sync-pill svg { width: 15px; height: 15px; }
   .topbar-community { min-width: 40px; min-height: 40px; justify-content: center; padding: 0 7px; }
@@ -783,7 +783,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 body, .learner-frame { background: var(--wash); }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline-color: rgba(221, 127, 76, .58); }
 ::selection { background: rgba(242, 161, 104, .3); }
-.brand-mark { background: #ffc36f; box-shadow: 0 4px 10px rgba(219, 133, 65, .22); }
+.brand-mark { filter: drop-shadow(0 4px 7px rgba(219, 133, 65, .2)); }
 .button { min-height: 46px; border-radius: 14px; font-size: 12px; }
 .button-primary { background: #ffc06b; color: #322719; box-shadow: 0 6px 14px rgba(198, 125, 54, .18); }
 .button-primary:hover { background: #ffca7f; }
@@ -840,6 +840,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .feedback-good { color: #14745f; background: #eaf7f1; }
 
 @media (max-width: 600px) {
+  .auth-page { width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr); padding-right: 12px; padding-left: 12px; }
+  .auth-card { width: 100%; max-width: 420px; min-width: 0; justify-self: center; }
+  .auth-card form, .auth-card label { min-width: 0; }
   .auth-required { max-width: 440px; min-height: calc(100dvh - 147px); padding: 19px 3px 25px; grid-template-columns: 1fr; gap: 17px; align-content: center; text-align: center; }
   .auth-gate-art { width: min(43vw, 190px); }
   .gate-bubble { top: 8px; right: -15px; padding: 7px 10px; font-size: 13px; }

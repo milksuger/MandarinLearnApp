@@ -20,6 +20,12 @@ The application is MIT licensed. Third-party components below retain their own l
 
 Build tooling and direct development dependencies are recorded, with exact versions and package metadata, in [`package.json`](package.json) and [`package-lock.json`](package-lock.json). Their package licenses remain applicable to redistributed build artifacts.
 
+## Original visual assets
+
+[`public/images/mandarin-learn-mascot.png`](public/images/mandarin-learn-mascot.png) is an original project mascot illustration generated with OpenAI ImageGen on 2026-09-26. It was generated for this project without third-party reference artwork; it contains no copied character artwork, logos, or course content. The image-generation provider's terms govern its use; no external stock-art license is claimed.
+
+[`public/images/auth-learning-companion.png`](public/images/auth-learning-companion.png) is an original AI-generated illustration made with OpenAI ImageGen on 2026-09-25. It was generated for this project without third-party reference artwork; it contains no logos or copied course assets.
+
 ## Offline Chinese handwriting recognition
 
 The WASM recognizer is the unmodified prebuilt output of [`gugray/hanzi_lookup`](https://github.com/gugray/hanzi_lookup), upstream commit `01f90c3ab99a8fadf0696c28e5eb097223c500db`.

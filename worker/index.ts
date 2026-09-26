@@ -186,8 +186,18 @@ app.get("/api/v1/paths", async (c) => {
 app.get("/api/v1/placement/questions", async (c) => {
   const principal = await requirePrincipal(c);
   if (!principal) return jsonError("unauthenticated", "Silakan masuk terlebih dahulu.", 401);
-  const questions = await c.env.DB.prepare(`SELECT id, ordinal, prompt, pinyin, options_json AS optionsJson
-    FROM placement_questions WHERE status = 'published' ORDER BY ordinal`).all();
+  const questions = await c.env.DB.prepare(`SELECT q.id, q.ordinal, q.prompt, q.pinyin, q.options_json AS optionsJson,
+    COALESCE(
+      (SELECT a.id FROM vocabulary_entries v JOIN readings r ON r.vocabulary_id = v.id AND r.status = 'approved'
+        JOIN audio_assets a ON a.reading_id = r.id AND a.status = 'approved'
+          AND (a.pronunciation_review = 'passed' OR a.source_attested_at IS NOT NULL)
+        WHERE v.simplified_form = q.prompt AND v.status = 'approved' ORDER BY a.pronunciation_review = 'passed' DESC, a.id LIMIT 1),
+      (SELECT a.id FROM characters ch JOIN readings r ON r.character_id = ch.id AND r.status = 'approved'
+        JOIN audio_assets a ON a.reading_id = r.id AND a.status = 'approved'
+          AND (a.pronunciation_review = 'passed' OR a.source_attested_at IS NOT NULL)
+        WHERE ch.hanzi = q.prompt AND ch.status = 'approved' ORDER BY a.pronunciation_review = 'passed' DESC, a.id LIMIT 1)
+    ) AS audioId
+    FROM placement_questions q WHERE q.status = 'published' ORDER BY q.ordinal`).all();
   return c.json({ version: "starting-point-v1", questions: questions.results.map((row) => ({
     ...row, options: JSON.parse(String(row.optionsJson)),
   })) });
@@ -346,6 +356,11 @@ app.get("/api/v1/units/:unitId", async (c) => {
     (SELECT e.simplified_text FROM examples e WHERE e.vocabulary_id = v.id AND e.status = 'approved' AND e.locale = 'id' ORDER BY e.id LIMIT 1) AS example_text,
     (SELECT e.numbered_pinyin FROM examples e WHERE e.vocabulary_id = v.id AND e.status = 'approved' AND e.locale = 'id' ORDER BY e.id LIMIT 1) AS example_pinyin,
     (SELECT e.translation FROM examples e WHERE e.vocabulary_id = v.id AND e.status = 'approved' AND e.locale = 'id' ORDER BY e.id LIMIT 1) AS example_translation,
+    (SELECT a.id FROM examples e JOIN example_audio_links l ON l.example_id = e.id AND l.role = 'primary'
+      JOIN content_audio_assets a ON a.id = l.asset_id JOIN asset_sources s ON s.id = a.source_id
+      WHERE e.vocabulary_id = v.id AND e.status = 'approved' AND e.locale = 'id' AND a.status = 'approved'
+        AND (a.pronunciation_review = 'passed' OR a.source_attested_at IS NOT NULL) AND s.license_verification = 'verified'
+      ORDER BY l.ordinal, a.id LIMIT 1) AS example_audio_id,
     g.text AS gloss, g.usage_label, a.id AS audio_id, a.duration_ms
     FROM curriculum_placements p
     LEFT JOIN vocabulary_entries v ON v.id = p.vocabulary_id AND v.status = 'approved'
@@ -374,12 +389,20 @@ app.get("/api/v1/units/:unitId", async (c) => {
       WHERE ca.unit_id = ? AND ca.status = 'published' AND gp.status = 'approved'
       ORDER BY ca.ordinal, cai.ordinal`).bind(unitId).all(),
     c.env.DB.prepare(`SELECT dt.id, dt.speaker_role AS speakerRole, dt.speaker_label AS speakerLabel,
-      dt.simplified_text AS simplifiedText, dt.pinyin_json AS pinyinJson, dt.translation, d.title AS dialogueTitle
+      dt.simplified_text AS simplifiedText, dt.pinyin_json AS pinyinJson, dt.translation, d.title AS dialogueTitle,
+      (SELECT a.id FROM dialogue_turn_audio_links l JOIN content_audio_assets a ON a.id = l.asset_id
+        JOIN asset_sources s ON s.id = a.source_id WHERE l.dialogue_turn_id = dt.id AND l.role = 'primary'
+          AND a.status = 'approved' AND (a.pronunciation_review = 'passed' OR a.source_attested_at IS NOT NULL)
+          AND s.license_verification = 'verified' ORDER BY l.ordinal, a.id LIMIT 1) AS audioId
       FROM dialogues d JOIN dialogue_turns dt ON dt.dialogue_id = d.id
       WHERE d.unit_id = ? AND d.status = 'approved' AND dt.status = 'approved'
       ORDER BY d.id, dt.ordinal`).bind(unitId).all(),
     c.env.DB.prepare(`SELECT sp.id, sp.simplified_text AS simplifiedText, sp.pinyin_json AS pinyinJson,
-      sp.translation, s.title AS storyTitle
+      sp.translation, s.title AS storyTitle,
+      (SELECT a.id FROM story_paragraph_audio_links l JOIN content_audio_assets a ON a.id = l.asset_id
+        JOIN asset_sources src ON src.id = a.source_id WHERE l.story_paragraph_id = sp.id AND l.role = 'primary'
+          AND a.status = 'approved' AND (a.pronunciation_review = 'passed' OR a.source_attested_at IS NOT NULL)
+          AND src.license_verification = 'verified' ORDER BY l.ordinal, a.id LIMIT 1) AS audioId
       FROM stories s JOIN story_paragraphs sp ON sp.story_id = s.id
       WHERE s.unit_id = ? AND s.status = 'approved' AND sp.status = 'approved'
       ORDER BY s.id, sp.ordinal`).bind(unitId).all(),
@@ -609,6 +632,24 @@ app.get("/api/v1/strokes/:characterId", async (c) => {
 });
 
 app.get("/api/v1/audio/:assetId", async (c) => {
+  const sentenceAsset = await c.env.DB.prepare(`SELECT a.storage_key, a.format, a.sha256, a.status,
+      a.pronunciation_review, a.source_attested_at, s.license_verification
+    FROM content_audio_assets a JOIN asset_sources s ON s.id = a.source_id WHERE a.id = ?`)
+    .bind(c.req.param("assetId")).first<{ storage_key: string; format: string; sha256: string; status: string; pronunciation_review: string; source_attested_at: string | null; license_verification: string }>();
+  if (sentenceAsset) {
+    if (sentenceAsset.status === "rejected" || sentenceAsset.status === "retired") return jsonError("audio_unavailable", "Rekaman ini tidak tersedia.", 404);
+    const publiclyAvailable = sentenceAsset.status === "approved" && sentenceAsset.license_verification === "verified"
+      && (sentenceAsset.pronunciation_review === "passed" || sentenceAsset.source_attested_at !== null);
+    if (!publiclyAvailable) {
+      const { principal, role } = await requireRole(c, ["owner_admin", "content_reviewer"]);
+      if (!principal) return jsonError("unauthenticated", "Masuk sebagai reviewer.", 401);
+      if (!role) return jsonError("forbidden", "Kandidat hanya dapat diputar oleh reviewer.", 403);
+      await addAudit(c.env.DB, c.get("requestId"), principal.id, "admin.audio.preview", "content_audio_asset", c.req.param("assetId"));
+    }
+    const bytes = await readVerifiedMedia(c, sentenceAsset.storage_key, sentenceAsset.sha256);
+    if (!bytes) return jsonError("audio_unavailable", "Checksum rekaman tidak cocok.", 404);
+    return new Response(bytes, { headers: { "Content-Type": sentenceAsset.format, "Cache-Control": "public, max-age=86400", ETag: `"${sentenceAsset.sha256}"`, "X-Content-Type-Options": "nosniff", "Content-Disposition": "inline" } });
+  }
   const row = await c.env.DB.prepare(`SELECT storage_key, format, sha256, status, pronunciation_review, source_attested_at
     FROM audio_assets WHERE id = ?`).bind(c.req.param("assetId")).first<{ storage_key: string; format: string; sha256: string; status: string; pronunciation_review: string; source_attested_at: string | null }>();
   if (!row || row.status === "rejected" || row.status === "retired") return jsonError("audio_unavailable", "Rekaman ini tidak tersedia.", 404);
@@ -1147,11 +1188,12 @@ app.get("/api/v1/admin/content/review-queue", async (c) => {
   const { principal, role } = await requireRole(c, ["owner_admin", "content_reviewer"]);
   if (!principal) return jsonError("unauthenticated", "Masuk sebagai reviewer.", 401);
   if (!role) return jsonError("forbidden", "Akses reviewer diperlukan.", 403);
-  const [words, characters, readings, audio] = await Promise.all([
+  const [words, characters, readings, wordAudio, sentenceAudio] = await Promise.all([
     c.env.DB.prepare("SELECT id, simplified_form AS text, status, source_id AS sourceId FROM vocabulary_entries WHERE status IN ('draft','needs_review') ORDER BY updated_at DESC LIMIT 100").all(),
     c.env.DB.prepare("SELECT id, hanzi AS text, status, source_id AS sourceId, stroke_data_status AS strokeStatus FROM characters WHERE status IN ('draft','needs_review') ORDER BY updated_at DESC LIMIT 100").all(),
     c.env.DB.prepare("SELECT id, context_label AS text, status, source_id AS sourceId, numbered_pinyin AS pinyin FROM readings WHERE status IN ('draft','needs_review') ORDER BY id LIMIT 100").all(),
     c.env.DB.prepare(`SELECT a.id, r.context_label AS text, r.numbered_pinyin AS pinyin, a.dialect, a.recording_context AS recordingContext,
+      'vocabulary' AS assetType,
       a.format, a.size_bytes AS sizeBytes, a.duration_ms AS durationMs, a.sha256, a.status, a.pronunciation_review AS pronunciationReview,
       s.name AS sourceName, s.license_id AS license, s.license_url AS licenseUrl, s.attribution,
       a.source_page_url AS sourcePageUrl, a.source_attested_at AS sourceAttestedAt,
@@ -1159,8 +1201,24 @@ app.get("/api/v1/admin/content/review-queue", async (c) => {
       FROM audio_assets a JOIN readings r ON r.id = a.reading_id JOIN asset_sources s ON s.id = a.source_id
       WHERE a.status = 'candidate' OR (a.status = 'approved' AND a.source_attested_at IS NOT NULL)
       ORDER BY a.created_at LIMIT 100`).all(),
+    c.env.DB.prepare(`SELECT a.id, targets.text, '' AS pinyin, a.dialect, a.recording_context AS recordingContext,
+      'sentence' AS assetType, a.format, a.size_bytes AS sizeBytes, a.duration_ms AS durationMs, a.sha256, a.status,
+      a.pronunciation_review AS pronunciationReview, s.name AS sourceName, s.license_id AS license,
+      s.license_url AS licenseUrl, s.attribution, a.source_page_url AS sourcePageUrl,
+      a.source_attested_at AS sourceAttestedAt, a.source_attestation_method AS sourceAttestationMethod
+      FROM content_audio_assets a JOIN asset_sources s ON s.id = a.source_id
+      LEFT JOIN (
+        SELECT l.asset_id, e.simplified_text AS text FROM example_audio_links l JOIN examples e ON e.id = l.example_id
+        UNION ALL
+        SELECT l.asset_id, d.simplified_text AS text FROM dialogue_turn_audio_links l JOIN dialogue_turns d ON d.id = l.dialogue_turn_id
+        UNION ALL
+        SELECT l.asset_id, p.simplified_text AS text FROM story_paragraph_audio_links l JOIN story_paragraphs p ON p.id = l.story_paragraph_id
+      ) targets ON targets.asset_id = a.id
+      WHERE a.status = 'candidate' OR (a.status = 'approved' AND a.source_attested_at IS NOT NULL)
+      ORDER BY a.created_at LIMIT 100`).all(),
   ]);
-  return c.json({ vocabulary: words.results, characters: characters.results, readings: readings.results, audio: audio.results });
+  return c.json({ vocabulary: words.results, characters: characters.results, readings: readings.results,
+    audio: [...wordAudio.results, ...sentenceAudio.results] });
 });
 
 app.patch("/api/v1/admin/content/:kind/:id", async (c) => {
@@ -1199,11 +1257,12 @@ app.patch("/api/v1/admin/audio/:audioId", async (c) => {
   const body = parseBody(z.object({ decision: z.enum(["passed", "failed"]), note: z.string().max(500) }), await c.req.json().catch(() => null));
   if (!body) return jsonError("invalid_request", "Keputusan audio tidak valid.");
   const status = body.decision === "passed" ? "approved" : "rejected";
-  const result = await c.env.DB.prepare(`UPDATE audio_assets SET pronunciation_review = ?, status = ?, reviewer_user_id = ?,
+  const sentenceAsset = c.req.param("audioId").startsWith("snt-");
+  const result = await c.env.DB.prepare(`UPDATE ${sentenceAsset ? "content_audio_assets" : "audio_assets"} SET pronunciation_review = ?, status = ?, reviewer_user_id = ?,
     reviewed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status IN ('candidate','approved')`)
     .bind(body.decision, status, principal.id, c.req.param("audioId")).run();
   const found = (result.meta.changes ?? 0) > 0;
-  await addAudit(c.env.DB, c.get("requestId"), principal.id, `admin.audio.${body.decision}`, "audio_asset", c.req.param("audioId"), found ? "success" : "failure", { note: body.note });
+  await addAudit(c.env.DB, c.get("requestId"), principal.id, `admin.audio.${body.decision}`, sentenceAsset ? "content_audio_asset" : "audio_asset", c.req.param("audioId"), found ? "success" : "failure", { note: body.note });
   if (!found) return jsonError("not_found", "Kandidat audio tidak ditemukan.", 404);
   return c.json({ ok: true, status });
 });
