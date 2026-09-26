@@ -715,7 +715,7 @@ app.get("/api/v1/audio/:assetId", async (c) => {
     }
     const bytes = await readVerifiedMedia(c, sentenceAsset.storage_key, sentenceAsset.sha256);
     if (!bytes) return jsonError("audio_unavailable", "Checksum rekaman tidak cocok.", 404);
-    return new Response(bytes, { headers: { "Content-Type": sentenceAsset.format, "Cache-Control": "public, max-age=86400", ETag: `"${sentenceAsset.sha256}"`, "X-Content-Type-Options": "nosniff", "Content-Disposition": "inline" } });
+    return new Response(bytes, { headers: { "Content-Type": sentenceAsset.format, "Cache-Control": publiclyAvailable ? "public, max-age=3600" : "private, no-store", ETag: `"${sentenceAsset.sha256}"`, "X-Content-Type-Options": "nosniff", "Content-Disposition": "inline" } });
   }
   const row = await c.env.DB.prepare(`SELECT storage_key, format, sha256, status, pronunciation_review, source_attested_at
     FROM audio_assets WHERE id = ?`).bind(c.req.param("assetId")).first<{ storage_key: string; format: string; sha256: string; status: string; pronunciation_review: string; source_attested_at: string | null }>();
