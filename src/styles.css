@@ -765,7 +765,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @media (max-width: 850px) {
   .admin-sidebar { width: 245px; transform: translateX(-102%); transition: transform .22s ease; box-shadow: 12px 0 24px rgba(25,30,48,.08); }
   .admin-sidebar.sidebar-open { transform: translateX(0); }
-  .admin-content { margin-left: 0; }
+.admin-content { margin-left: 0; }
   .admin-topbar { height: 54px; padding: 0 15px; }
   .mobile-admin-menu { display: inline-grid; width: 34px; height: 34px; margin-right: 7px; }
   .admin-topbar { justify-content: flex-start; }
@@ -875,4 +875,88 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .stroke-stepper { gap: 7px; }
   .stroke-stepper > span { min-width: 92px; font-size: 11px; }
   .practice-heading .button { min-height: 44px; padding: 0 10px; font-size: 10px; }
+}
+
+/* Admin review queues: keep large content collections searchable and bounded. */
+.admin-page { width: min(100% - 56px, 1240px); }
+.admin-page-head { margin-bottom: 18px; }
+.admin-page-head h1 { font-size: clamp(24px, 2.5vw, 31px); }
+.admin-page-head p { max-width: 760px; font-size: 13px; }
+.admin-content-tabs { position: sticky; top: 59px; z-index: 20; margin: 0 -2px 14px; padding: 9px 2px; display: flex; gap: 8px; overflow-x: auto; border-bottom: 1px solid #e7e9ef; background: rgba(246,247,250,.96); scrollbar-width: thin; }
+.admin-content-tab { min-height: 42px; flex: 0 0 auto; padding: 0 14px; display: inline-flex; align-items: center; gap: 9px; border: 1px solid #e4e6ed; border-radius: 12px; background: #fff; color: #5c6273; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .18s ease, border-color .18s ease, color .18s ease; }
+.admin-content-tab:hover { border-color: #dfc77d; }
+.admin-content-tab.active { border-color: #e4b841; background: #fff4d4; color: #49370a; }
+.admin-content-tab b { min-width: 22px; height: 22px; padding: 0 6px; display: inline-grid; place-items: center; border-radius: 999px; background: #f0f1f5; color: #6d7280; font-size: 11px; }
+.admin-content-tab.active b { background: #e9bf56; color: #382a08; }
+.admin-queue-panel { margin-top: 0; padding: 21px; }
+.admin-queue-panel .panel-head { align-items: center; }
+.admin-queue-panel .panel-head h2 { font-size: 17px; }
+.admin-queue-panel .panel-head p { font-size: 12px; }
+.queue-total { flex: 0 0 auto; padding: 7px 11px; border-radius: 999px; background: #fff3d8; color: #76520a; font-size: 12px; font-weight: 800; }
+.admin-queue-search { min-height: 44px; margin: 14px 0 8px; padding: 0 12px; display: flex; align-items: center; gap: 10px; border: 1px solid #e3e6ed; border-radius: 11px; background: #fafbfc; color: #7b8190; }
+.admin-queue-search:focus-within { border-color: #d8b14b; box-shadow: 0 0 0 3px rgba(228,184,65,.13); }
+.admin-queue-search svg { width: 17px; height: 17px; flex: 0 0 auto; }
+.admin-queue-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: #30364a; font: inherit; font-size: 13px; }
+.admin-queue-search input::placeholder { color: #9398a4; }
+.admin-queue-search > span { flex: 0 0 auto; color: #8b909c; font-size: 11px; }
+.content-review-row { min-height: 68px; gap: 14px; }
+.content-review-row .hanzi-thumb { flex: 0 0 auto; }
+.content-review-row > div:nth-child(2) { min-width: 0; gap: 5px; }
+.content-review-row strong { font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+.content-review-row small { font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+.review-actions { flex: 0 0 auto; gap: 8px; }
+.review-actions .button, .audio-review-actions .button { min-height: 42px; padding: 0 13px; font-size: 12px; }
+.audio-review-card { min-width: 0; margin-top: 9px; padding: 16px; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 18px; border: 1px solid #e9ebf0; border-radius: 14px; background: linear-gradient(135deg,#fff 0%,#fdfdfd 100%); }
+.audio-meta { min-width: 0; }
+.audio-review-title { min-width: 0; margin-bottom: 9px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.audio-review-title > strong { color: #252d45; font-size: 19px; line-height: 1.35; overflow-wrap: anywhere; }
+.audio-review-title > span { color: #697286; font-size: 13px; }
+.audio-review-title .audio-review-status { padding: 3px 8px; border-radius: 999px; background: #f3f4f7; color: #717787; font-size: 11px; }
+.audio-meta audio { width: min(100%, 420px); height: 40px; }
+.audio-source-details { margin-top: 6px; color: #777e8e; font-size: 11px; }
+.audio-source-details summary { width: fit-content; padding: 5px 0; color: #697286; cursor: pointer; }
+.audio-source-details > div { padding: 3px 0 4px 12px; border-left: 2px solid #eceef2; }
+.audio-source-details p { margin: 5px 0; font-size: 11px; }
+.audio-source-details small { overflow-wrap: anywhere; font-size: 10px; }
+.audio-review-actions { align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.admin-pagination { min-height: 54px; padding-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #7a8090; font-size: 12px; }
+.admin-pagination > div { display: flex; gap: 8px; }
+.admin-pagination .button { min-height: 40px; padding: 0 13px; font-size: 12px; }
+.recording-queue-picker { display: grid; gap: 7px; color: #464c5e; font-size: 12px; font-weight: 750; }
+.recording-queue-picker > span { display: flex; justify-content: space-between; gap: 10px; }
+.recording-queue-picker small { color: #858b99; font-size: 11px; font-weight: 600; }
+.recording-queue-picker select { width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid #e2e5ec; border-radius: 10px; background: #fff; color: #30364a; font: inherit; font-size: 12px; }
+.admin-table th { font-size: 11px; }
+.admin-table td { font-size: 12px; }
+.table-empty { font-size: 13px; }
+.community-admin-item > div:last-child .button { min-height: 42px; padding: 0 13px; font-size: 12px; }
+
+@media (max-width: 850px) {
+  .admin-content-tabs { top: 54px; margin: 0 -1px 10px; }
+  .admin-content-tab { min-height: 44px; padding: 0 12px; font-size: 12px; }
+  .admin-queue-panel { padding: 15px; }
+  .audio-review-card { grid-template-columns: minmax(0,1fr); gap: 12px; }
+  .audio-review-actions { justify-content: flex-start; }
+  .admin-pagination { align-items: flex-start; flex-direction: column; }
+  .admin-pagination > div { width: 100%; }
+  .admin-pagination .button { flex: 1; }
+}
+@media (max-width: 560px) {
+  .admin-page { width: calc(100% - 24px); padding-top: 16px; }
+  .admin-page-head { margin-bottom: 13px; }
+  .admin-page-head p { font-size: 12px; }
+  .admin-content-tabs { position: sticky; top: 54px; margin-right: -12px; margin-left: -12px; padding: 8px 12px; }
+  .admin-queue-panel { padding: 13px; }
+  .admin-queue-panel .panel-head { align-items: flex-start; flex-direction: column; }
+  .admin-queue-search { gap: 7px; padding: 0 9px; }
+  .admin-queue-search input { font-size: 12px; }
+  .content-review-row { align-items: flex-start; gap: 9px; flex-wrap: wrap; }
+  .content-review-row > div:nth-child(2) { flex: 1 1 calc(100% - 58px); }
+  .content-review-row .review-actions { width: 100%; padding-left: 46px; }
+  .content-review-row .review-actions .button { flex: 1; }
+  .audio-review-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .audio-review-actions .button { padding: 0 8px; white-space: nowrap; }
+  .community-admin-item { align-items: flex-start; }
+  .community-admin-item > div:last-child { width: 100%; }
+  .community-admin-item > div:last-child .button { flex: 1; }
 }
