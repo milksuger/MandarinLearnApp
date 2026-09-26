@@ -1461,11 +1461,17 @@ app.get("/api/v1/admin/audit", async (c) => {
   const { principal, role } = await requireRole(c, ["owner_admin"]);
   if (!principal) return jsonError("unauthenticated", "Masuk sebagai administrator.", 401);
   if (!role) return jsonError("forbidden", "Akses pemilik diperlukan.", 403);
-  const limit = Math.min(200, Math.max(1, Number(c.req.query("limit") ?? 50)));
-  const rows = await c.env.DB.prepare(`SELECT id, actor_user_id AS actorId, action, subject_type AS subjectType, subject_id AS subjectId,
-    outcome, request_id AS requestId, occurred_at AS occurredAt FROM audit_events ORDER BY occurred_at DESC LIMIT ?`).bind(limit).all();
+  const requestedLimit = Number(c.req.query("limit") ?? 25);
+  const requestedOffset = Number(c.req.query("offset") ?? 0);
+  const limit = Number.isFinite(requestedLimit) ? Math.min(100, Math.max(1, Math.trunc(requestedLimit))) : 25;
+  const offset = Number.isFinite(requestedOffset) ? Math.min(1_000_000, Math.max(0, Math.trunc(requestedOffset))) : 0;
+  const [count, rows] = await Promise.all([
+    c.env.DB.prepare("SELECT COUNT(*) AS total FROM audit_events").first<{ total: number }>(),
+    c.env.DB.prepare(`SELECT id, actor_user_id AS actorId, action, subject_type AS subjectType, subject_id AS subjectId,
+      outcome, request_id AS requestId, occurred_at AS occurredAt FROM audit_events ORDER BY occurred_at DESC, id DESC LIMIT ? OFFSET ?`).bind(limit, offset).all(),
+  ]);
   await addAudit(c.env.DB, c.get("requestId"), principal.id, "admin.audit.read", null, null, "success", { limit });
-  return c.json({ events: rows.results });
+  return c.json({ events: rows.results, total: count?.total ?? 0, limit, offset });
 });
 
 app.get("/api/v1/admin/privacy-requests", async (c) => {
