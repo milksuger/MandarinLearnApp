@@ -827,7 +827,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .auth-gate-actions .button { width: 100%; min-height: 50px; font-size: 13px; }
 .auth-gate-copy > small { color: #8a8e9b; font-size: 10px; }
 .auth-card { position: relative; overflow: hidden; }
-.auth-card::before { content: '文'; width: 58px; height: 58px; position: absolute; top: 22px; right: 22px; display: grid; place-items: center; border: 3px solid #fff; border-radius: 19px 19px 19px 7px; color: #8f6041; background: #ffe4c9; font-family: serif; font-size: 30px; font-weight: 800; transform: rotate(5deg); }
 .auth-card .brand, .auth-card > .tag, .auth-card h1, .auth-card > p, .auth-card form, .auth-card .auth-switch, .auth-card .auth-privacy, .auth-card .inline-notice { position: relative; z-index: 1; }
 .auth-card .brand { margin-bottom: 34px; }
 .auth-card h1 { max-width: 290px; margin-top: 12px; }
@@ -869,7 +868,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .auth-gate-actions { width: 100%; max-width: none; margin: 16px 0 8px; }
   .auth-gate-copy > small { font-size: 9px; }
   .auth-card { padding: 23px 19px; }
-  .auth-card::before { width: 48px; height: 48px; top: 18px; right: 17px; font-size: 24px; }
   .auth-card .brand { margin-bottom: 29px; }
   .profile-quick-actions { grid-template-columns: minmax(0, 1.4fr) minmax(96px, .8fr); gap: 7px; }
   .profile-quick-actions .button { min-height: 48px; padding: 7px 8px; font-size: 10px; }
