@@ -1071,7 +1071,7 @@ function SentenceAudioRecordingStudio({ onUploaded }: { onUploaded: () => void }
   const startRecording = async () => {
     setError(""); setNotice(""); clearPreview();
     try {
-      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") throw new Error("Browser ini tidak mendukung perekaman mikrofon.");
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") throw new Error("当前浏览器不支持麦克风录音，请更新浏览器后重试。");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
       streamRef.current = stream;
       const recorder = new MediaRecorder(stream);
@@ -1088,9 +1088,9 @@ function SentenceAudioRecordingStudio({ onUploaded }: { onUploaded: () => void }
       recorder.start(250);
       setRecording(true);
       timerRef.current = window.setTimeout(() => {
-        if (recorder.state === "recording") { recorder.stop(); setRecording(false); setNotice("Rekaman mencapai batas 29 detik. Dengarkan dahulu sebelum mengirim."); }
+        if (recorder.state === "recording") { recorder.stop(); setRecording(false); setNotice("录音已达到 29 秒上限，请先试听，再提交。"); }
       }, 29_000);
-    } catch { streamRef.current?.getTracks().forEach((track) => track.stop()); streamRef.current = null; setError("无法访问麦克风，请在浏览器中允许麦克风权限后重试。"); }
+    } catch { streamRef.current?.getTracks().forEach((track) => track.stop()); streamRef.current = null; setError("无法访问麦克风，请在浏览器设置中允许本网站使用麦克风后重试。"); }
   };
   const stopRecording = () => {
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
