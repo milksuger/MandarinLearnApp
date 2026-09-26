@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router";
-import { Activity, ArrowLeft, ArrowRight, Ban, BookOpen, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Cloud, Compass, Flag, Flame, Headphones, Home, Layers3, LogOut, Menu, MessageCircle, Pause, PenLine, Play, RotateCcw, Search, Settings, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, Ban, BookOpen, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, Cloud, Compass, Flag, Flame, Headphones, Home, Layers3, LogOut, Menu, MessageCircle, Mic, Pause, PenLine, Play, RotateCcw, Search, Settings, ShieldCheck, SkipForward, Sparkles, Square, UserRound, Volume2, X } from "lucide-react";
 import type HanziWriter from "hanzi-writer";
 import { authClient } from "./auth-client";
 import { api, audioUrl } from "../shared/api";
 import { enqueueAttempt, enqueueRecognition, pendingAttempts, syncOutbox } from "../features/sync/outbox";
+import { recordedBlobToWav } from "../features/admin/sentence-recorder";
 
 type SessionResult = ReturnType<typeof authClient.useSession>;
 type SessionUser = NonNullable<SessionResult["data"]>["user"];
@@ -924,11 +925,11 @@ function ProfilePage() {
 }
 
 function CreditsPage() {
-  const [audioAssets, setAudioAssets] = useState<Array<{ id: string; text: string; pinyin: string; creator: string; recordedBy?: string; sourcePage: string; licenseUrl: string; license: string; speakerProfile?: string }> | null>(null);
-  useEffect(() => { void import("../../content/audio-assets-manifest.json").then(({ default: manifest }) => setAudioAssets(manifest.assets)); }, []);
+  const [audioAssets, setAudioAssets] = useState<Array<{ id: string; text: string; pinyin?: string; creator: string; recordedBy?: string; sourcePage: string; licenseUrl: string; license: string; speakerProfile?: string }> | null>(null);
+  useEffect(() => { void Promise.all([import("../../content/audio-assets-manifest.json"), api<{ assets: Array<{ id: string; text: string; creator: string; attribution: string; recordedBy: string; sourcePage: string; licenseUrl: string; license: string }> }>("/audio-credits/sentences")]).then(([manifest, sentences]) => setAudioAssets([...manifest.default.assets, ...sentences.assets.map((asset) => ({ ...asset, pinyin: "", creator: asset.attribution || asset.creator }))])); }, []);
   return <div className="page-wrap"><PageBack to="/profile" /><PageTitle eyebrow="KREDIT & LISENSI" title="Sumber materi dan teknologi" subtitle="Materi terbuka mempertahankan atribusi dan lisensinya sendiri; lisensi aplikasi tidak menggantikannya." />
     <section className="detail-card"><h2>Data urutan guratan</h2><p>Karakter awal memakai Hanzi Writer Data 2.0.1 dari Make Me a Hanzi, yang menyatakan data guratan berasal dari glyph Arphic. Data ini berlisensi Arphic Public License dan bukan klaim bahwa setiap urutan telah disahkan Kementerian Pendidikan Tiongkok.</p><p><a href="https://github.com/chanind/hanzi-writer-data" target="_blank" rel="noreferrer">Repositori Hanzi Writer Data</a> · <a href="https://github.com/chanind/hanzi-writer-data/blob/master/ARPHICPL.TXT" target="_blank" rel="noreferrer">Teks Arphic Public License</a></p></section>
-    <section className="detail-card"><h2>Rekaman Mandarin</h2><p>{audioAssets ? `Sebanyak ${audioAssets.length} berkas rekaman manusia memiliki sumber dan lisensinya tercatat.` : "Memuat daftar rekaman dan atribusinya…"} Jika suatu kata belum punya rekaman tepat, tombol audio memakai suara Mandarin sederhana (zh-CN) yang tersedia secara lokal di perangkat. Suara perangkat tidak dikirim ke server, bukan rekaman manusia, dan dapat berbeda antarperangkat; bila belum tersedia, pasang suara Mandarin di pengaturan perangkat. Kami tidak memakai suara jarak jauh berbayar atau menggabungkan potongan suku kata.</p>{audioAssets?.map((asset) => <p key={asset.id}><strong>“{asset.text} / {asset.pinyin}”</strong> — {asset.creator}{asset.recordedBy ? `, direkam oleh ${asset.recordedBy}` : ""} · <a href={asset.sourcePage} target="_blank" rel="noreferrer">file sumber</a> · <a href={asset.licenseUrl} target="_blank" rel="noreferrer">{asset.license}</a>{asset.speakerProfile ? <> · <a href={asset.speakerProfile} target="_blank" rel="noreferrer">profil penutur</a></> : null}</p>)}</section>
+    <section className="detail-card" id="human-recordings"><h2>Rekaman Mandarin</h2><p>{audioAssets ? `Sebanyak ${audioAssets.length} berkas rekaman manusia memiliki sumber dan lisensinya tercatat.` : "Memuat daftar rekaman dan atribusinya…"} Jika suatu kata belum punya rekaman tepat, tombol audio memakai suara Mandarin sederhana (zh-CN) yang tersedia secara lokal di perangkat. Suara perangkat tidak dikirim ke server, bukan rekaman manusia, dan dapat berbeda antarperangkat; bila belum tersedia, pasang suara Mandarin di pengaturan perangkat. Kami tidak memakai suara jarak jauh berbayar atau menggabungkan potongan suku kata. Kalimat hanya memakai rekaman manusia; tombolnya tetap nonaktif jika rekaman yang cocok belum tersedia.</p>{audioAssets?.map((asset) => <p key={asset.id}><strong>“{asset.text}{asset.pinyin ? ` / ${asset.pinyin}` : ""}”</strong> — {asset.creator}{asset.recordedBy ? `, direkam oleh ${asset.recordedBy}` : ""} · <a href={asset.sourcePage} target="_blank" rel="noreferrer">file sumber</a> · <a href={asset.licenseUrl} target="_blank" rel="noreferrer">{asset.license}</a>{asset.speakerProfile ? <> · <a href={asset.speakerProfile} target="_blank" rel="noreferrer">profil penutur</a></> : null}</p>)}</section>
     <section className="detail-card"><h2>Materi & struktur HSK</h2><p>Materi resmi memang tersedia: situs ujian HSK memuat kerangka, silabus, contoh soal, dan bahan ujian. Yang belum dipastikan adalah izin untuk menyalin serta menerbitkan ulang daftar dan teks lengkap itu di aplikasi terbuka ini. Karena itu, latihan HSK yang tersedia sekarang ditulis khusus untuk aplikasi dan tidak diklaim sebagai daftar resmi HSK.</p><p><a href="https://www.chinesetest.cn/hsk" target="_blank" rel="noreferrer">Kerangka HSK resmi</a> · <a href="https://admin.chinesetest.cn/godownload.do" target="_blank" rel="noreferrer">Pusat unduhan resmi HSK</a> · <a href="https://www.chinesetest.cn/legal-notice" target="_blank" rel="noreferrer">Ketentuan situs CTI</a></p><p>Struktur enam tingkat HSK 2.0 dan tiga tahap/sembilan tingkat HSK Baru dipakai sebagai navigasi. Kosakata, contoh kalimat, serta terjemahan baru tetap dicatat sebagai konten asli berbahasa Indonesia. Tingkat pemula sekarang berisi 20 materi buatan aplikasi pada kedua jalur.</p></section>
     <section className="detail-card"><h2>Teknologi</h2><ul><li>React, React Router, TypeScript, Vite, Hono, Better Auth, Zod, IndexedDB, dan Cloudflare Workers/D1.</li><li>Hanzi Writer untuk animasi dan latihan guratan; library-nya MIT, data karakternya memakai lisensi terpisah.</li><li>Hanzi Lookup WASM untuk saran pengenalan tulisan tangan lokal; kodenya LGPL-3.0 dan data bentuk tertanam berlisensi Arphic Public License.</li><li>OpenCC JS untuk normalisasi kandidat tradisional menjadi sederhana; source, data, dan lisensinya dicatat di <code>THIRD_PARTY_NOTICES.md</code> pada repositori.</li></ul></section>
     <section className="detail-card"><h2>Ilustrasi</h2><p>Maskot pendamping belajar di halaman utama dibuat untuk proyek ini menggunakan alat pembuat gambar OpenAI pada 25 September 2026. Ilustrasi tidak memuat aset atau karakter berlisensi pihak lain.</p></section>
@@ -1030,6 +1031,108 @@ function AdminLearnerPage() {
   </>}</>;
 }
 
+type SentenceAudioPrompt = { targetType: "example" | "dialogue" | "story"; targetId: string; text: string; pinyin: string; translation: string; unitTitle: string };
+
+function SentenceAudioRecordingStudio({ onUploaded }: { onUploaded: () => void }) {
+  const [prompts, setPrompts] = useState<SentenceAudioPrompt[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [speakerName, setSpeakerName] = useState("");
+  const [recording, setRecording] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [wav, setWav] = useState<Blob | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [exactConfirmed, setExactConfirmed] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
+  const timerRef = useRef<number | null>(null);
+  const prompt = prompts[currentIndex];
+  const loadPrompts = async () => {
+    try {
+      const result = await api<{ prompts: SentenceAudioPrompt[] }>("/admin/sentence-audio-prompts");
+      setPrompts(result.prompts);
+      setCurrentIndex(0);
+      setError("");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Tidak dapat memuat antrean kalimat."); }
+  };
+  useEffect(() => { void loadPrompts(); return () => {
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+  }; }, []);
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
+  const clearPreview = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setWav(null);
+  };
+  const startRecording = async () => {
+    setError(""); setNotice(""); clearPreview();
+    try {
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") throw new Error("Browser ini tidak mendukung perekaman mikrofon.");
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true } });
+      streamRef.current = stream;
+      const recorder = new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      chunksRef.current = [];
+      recorder.ondataavailable = (event) => { if (event.data.size) chunksRef.current.push(event.data); };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        const source = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        void recordedBlobToWav(source).then((result) => { setWav(result); setPreviewUrl(URL.createObjectURL(result)); })
+          .catch((cause) => setError(cause instanceof Error ? cause.message : "Tidak dapat menyiapkan audio WAV."));
+      };
+      recorder.start(250);
+      setRecording(true);
+      timerRef.current = window.setTimeout(() => {
+        if (recorder.state === "recording") { recorder.stop(); setRecording(false); setNotice("Rekaman mencapai batas 29 detik. Dengarkan dahulu sebelum mengirim."); }
+      }, 29_000);
+    } catch (cause) { streamRef.current?.getTracks().forEach((track) => track.stop()); streamRef.current = null; setError(cause instanceof Error ? cause.message : "Izin mikrofon tidak diberikan."); }
+  };
+  const stopRecording = () => {
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+    setRecording(false);
+  };
+  const uploadRecording = async () => {
+    if (!prompt || !wav || !speakerName.trim() || !consent || !exactConfirmed) return;
+    setSaving(true); setError(""); setNotice("");
+    const form = new FormData();
+    form.set("targetType", prompt.targetType);
+    form.set("targetId", prompt.targetId);
+    form.set("speakerDisplayName", speakerName.trim());
+    form.set("consent", "accepted");
+    form.set("exactLineConfirmed", "yes");
+    form.set("recording", wav, "human-sentence.wav");
+    try {
+      const saved = await api<{ assetId: string; text: string }>("/admin/sentence-audio-recordings", { method: "POST", body: form });
+      setNotice(`Rekaman untuk “${saved.text}” masuk antrean pemeriksaan.`);
+      clearPreview(); setConsent(false); setExactConfirmed(false);
+      await loadPrompts(); onUploaded();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Rekaman belum tersimpan."); }
+    finally { setSaving(false); }
+  };
+  return <section className="admin-panel sentence-recording-studio">
+    <div className="panel-head"><div><h2>Rekam audio kalimat</h2><p>Ucapkan tepat sesuai teks. Audio baru dipublikasikan setelah admin memeriksa kecocokan dan kualitasnya.</p></div><span className="recording-queue-count">{prompts.length} kalimat</span></div>
+    {notice && <InlineNotice>{notice}</InlineNotice>}{error && <InlineNotice tone="danger">{error}</InlineNotice>}
+    {!prompt ? <div className="recording-empty"><Headphones aria-hidden="true" /><strong>Tidak ada kalimat yang menunggu rekaman baru. Periksa audio kandidat yang masih menunggu persetujuan.</strong></div> : <div className="recording-workspace">
+      <div className="recording-prompt"><small>{prompt.unitTitle} · {prompt.targetType === "dialogue" ? "Dialog" : prompt.targetType === "story" ? "Cerita" : "Contoh"}</small><strong lang="zh-CN">{prompt.text}</strong>{prompt.pinyin && <span>{prompt.pinyin}</span>}<p>{prompt.translation}</p></div>
+      <div className="recording-controls">
+        {!recording ? <button className="button button-primary" onClick={() => void startRecording()}><Mic size={16} />Mulai merekam</button> : <button className="button button-danger" onClick={stopRecording}><Square size={14} />Hentikan</button>}
+        {previewUrl && <audio controls preload="metadata" src={previewUrl} />}
+        <button className="button button-soft" disabled={recording || saving} onClick={() => { clearPreview(); setConsent(false); setExactConfirmed(false); setCurrentIndex((index) => prompts.length ? (index + 1) % prompts.length : 0); }}><SkipForward size={15} />Lewati kalimat</button>
+      </div>
+      <label className="recording-speaker">Nama yang ditampilkan sebagai pembaca<input value={speakerName} maxLength={80} onChange={(event) => setSpeakerName(event.target.value)} placeholder="Nama atau nama panggilan" /></label>
+      <label className="recording-consent"><input type="checkbox" checked={exactConfirmed} onChange={(event) => setExactConfirmed(event.target.checked)} />Saya sendiri yang mengucapkan seluruh kalimat Mandarin yang tampil; rekaman ini bukan suara sintetis.</label>
+      <label className="recording-consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />Saya memiliki hak atas rekaman ini dan mengizinkan audio serta nama tampilan saya dipublikasikan dengan lisensi CC BY 4.0. Pengguna boleh menyalin dan mengadaptasinya dengan atribusi.</label>
+      <button className="button button-primary" disabled={!wav || !speakerName.trim() || !consent || !exactConfirmed || saving || recording} onClick={() => void uploadRecording()}>{saving ? "Menyimpan…" : "Kirim ke pemeriksaan"}</button>
+    </div>}
+  </section>;
+}
+
 function AdminContent() {
   const [queue, setQueue] = useState<{ vocabulary: Array<{ id: string; text: string; status: string; sourceId: string }>; characters: Array<{ id: string; text: string; status: string; sourceId: string; strokeStatus: string }>; readings: Array<{ id: string; text: string; pinyin: string; status: string; sourceId: string }>; audio: Array<{ id: string; text: string; pinyin: string; dialect: string; recordingContext: string; assetType: string; format: string; sizeBytes: number; durationMs: number; sha256: string; status: string; pronunciationReview: string; sourceName: string; license: string; licenseUrl: string; attribution: string; sourcePageUrl: string; sourceAttestedAt: string | null; sourceAttestationMethod: string | null }> } | null>(null);
   const [error, setError] = useState(""); const [notice, setNotice] = useState("");
@@ -1038,6 +1141,7 @@ function AdminContent() {
   const review = async (kind: string, id: string, status: string) => { try { await api(`/admin/content/${kind}/${id}`, { method: "PATCH", body: JSON.stringify({ status, note: "Reviewed in admin" }) }); setNotice("Keputusan review tersimpan dan tercatat."); load(); } catch (cause) { setNotice(cause instanceof Error ? cause.message : "Keputusan belum dapat disimpan."); } };
   const audioReview = async (id: string, decision: "passed" | "failed") => { try { await api(`/admin/audio/${id}`, { method: "PATCH", body: JSON.stringify({ decision, note: "Checked against the exact displayed Mandarin reading and context." }) }); setNotice("Hasil pemeriksaan audio tersimpan."); load(); } catch (cause) { setNotice(cause instanceof Error ? cause.message : "Hasil pemeriksaan belum dapat disimpan."); } };
   return <><AdminPageHead eyebrow="KUALITAS MATERI" title="Konten & audio" subtitle="Materi dari sumber lisensi terbuka dapat aktif otomatis setelah sumber dan metadata cocok; antrian ini tetap menyediakan pemutaran, penolakan, dan pemeriksaan ulang." />{error && <InlineNotice tone="danger">{error}</InlineNotice>}{notice && <InlineNotice>{notice}</InlineNotice>}{queue && <><ReviewGroup title="Kosakata" items={queue.vocabulary} kind="vocabulary" onReview={review} /><ReviewGroup title="Karakter & data guratan" items={queue.characters.map((item) => ({ ...item, text: `${item.text} · guratan: ${item.strokeStatus}` }))} kind="character" onReview={review} /><ReviewGroup title="Pelafalan / Pinyin" items={queue.readings.map((item) => ({ ...item, text: `${item.text} · ${item.pinyin}` }))} kind="reading" onReview={review} />
+    <SentenceAudioRecordingStudio onUploaded={load} />
     <section className="admin-panel review-section"><div className="panel-head"><div><h2>Audio tersumber & kandidat</h2><p>Rekaman sumber dapat aktif tanpa keputusan per file; putar kembali atau tolak bila ada masalah.</p></div></div>{queue.audio.length ? queue.audio.map((audio) => <div className="audio-review-card" key={audio.id}><div className="audio-meta"><strong>{audio.text} <small>{audio.pinyin}</small></strong><p>{audio.assetType === "sentence" ? "Audio kalimat" : "Audio kosakata"} · {audio.sourceName} · {audio.license} {audio.sourceAttestedAt ? "· sumber cocok" : "· menunggu sumber/review"}</p><p>{audio.recordingContext} · {audio.dialect} · {(audio.sizeBytes / 1024).toFixed(1)} KB · {audio.durationMs} ms</p><small>Checksum {audio.sha256.slice(0, 16)}… · atribusi: {audio.attribution}</small><p><a href={audio.sourcePageUrl} target="_blank" rel="noreferrer">Buka file sumber</a> · <a href={audio.licenseUrl} target="_blank" rel="noreferrer">Lisensi</a></p><audio controls preload="none" src={audioUrl(audio.id) ?? undefined} /></div><div className="audio-review-actions"><button className="button button-soft" onClick={() => void audioReview(audio.id, "failed")}>Tolak</button><button className="button button-primary" onClick={() => void audioReview(audio.id, "passed")}>Tandai cocok</button></div></div>) : <div className="table-empty">Belum ada file audio kandidat atau tersumber.</div>}</section></>}</>;
 }
 

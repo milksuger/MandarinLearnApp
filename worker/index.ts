@@ -9,17 +9,25 @@ type LessonActivityRow = { id: string; activityKind: string; title: string; obje
 const app = new Hono<AppEnv>();
 const simplifyTraditionalCharacter = OpenCC.Converter({ from: "t", to: "cn" });
 
-const jsonError = (code: string, message: string, status: 400 | 401 | 403 | 404 | 409 | 429 | 500 = 400) =>
+const jsonError = (code: string, message: string, status: 400 | 401 | 403 | 404 | 409 | 429 | 500 | 503 = 400) =>
   Response.json({ error: { code, message } }, { status });
 
 async function readVerifiedMedia(c: Context<AppEnv>, key: string, expectedSha256: string): Promise<ArrayBuffer | null> {
-  if (!/^[a-z0-9/_-]+\.(?:json|ogg|mp3)$/i.test(key) || key.includes("..")) return null;
+  if (!/^[a-z0-9/_-]+\.(?:json|ogg|mp3|wav)$/i.test(key) || key.includes("..")) return null;
   let bytes: ArrayBuffer | null = null;
   if (c.env.MEDIA) {
     const object = await c.env.MEDIA.get(key);
     if (object) {
       if (object.customMetadata?.sha256 && object.customMetadata.sha256 !== expectedSha256) return null;
       bytes = await object.arrayBuffer();
+    }
+  }
+  if (!bytes && key.startsWith("media/sentence-recordings/")) {
+    const stored = await c.env.DB.prepare("SELECT media_bytes FROM sentence_audio_media WHERE storage_key = ?")
+      .bind(key).first<{ media_bytes: ArrayBuffer | Uint8Array }>();
+    if (stored?.media_bytes) {
+      const media = stored.media_bytes;
+      bytes = media instanceof ArrayBuffer ? media : media.buffer.slice(media.byteOffset, media.byteOffset + media.byteLength) as ArrayBuffer;
     }
   }
   if (!bytes) {
@@ -79,6 +87,65 @@ async function addAudit(
   await db.prepare(
     "INSERT INTO audit_events (id, actor_user_id, action, subject_type, subject_id, outcome, request_id, metadata_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
   ).bind(crypto.randomUUID(), actorId, action, subjectType, subjectId, outcome, requestId, JSON.stringify(metadata)).run();
+}
+
+function getPcmWavDurationMs(bytes: ArrayBuffer): number | null {
+  if (bytes.byteLength < 44) return null;
+  const view = new DataView(bytes);
+  const ascii = (offset: number, length: number) => String.fromCharCode(...new Uint8Array(bytes, offset, length));
+  if (ascii(0, 4) !== "RIFF" || ascii(8, 4) !== "WAVE") return null;
+  let offset = 12;
+  let byteRate = 0;
+  let dataLength = 0;
+  let pcm = false;
+  while (offset + 8 <= bytes.byteLength) {
+    const chunkId = ascii(offset, 4);
+    const chunkLength = view.getUint32(offset + 4, true);
+    const chunkStart = offset + 8;
+    if (chunkStart + chunkLength > bytes.byteLength) return null;
+    if (chunkId === "fmt " && chunkLength >= 16) {
+      pcm = view.getUint16(chunkStart, true) === 1
+        && [1, 2].includes(view.getUint16(chunkStart + 2, true))
+        && [16, 24, 32].includes(view.getUint16(chunkStart + 14, true));
+      byteRate = view.getUint32(chunkStart + 8, true);
+    } else if (chunkId === "data") dataLength = chunkLength;
+    offset = chunkStart + chunkLength + (chunkLength % 2);
+  }
+  if (!pcm || !byteRate || !dataLength) return null;
+  const durationMs = Math.round(dataLength / byteRate * 1_000);
+  return durationMs >= 500 && durationMs <= 30_000 ? durationMs : null;
+}
+
+type SentenceAudioTarget = { targetType: "example" | "dialogue" | "story"; targetId: string; text: string; pinyin: string; translation: string; unitTitle: string };
+const publishedSentenceTargetsSql = `
+  SELECT target_type AS targetType, target_id AS targetId, text, pinyin, translation, unit_title AS unitTitle FROM (
+    SELECT 'example' AS target_type, e.id AS target_id, e.simplified_text AS text, e.numbered_pinyin AS pinyin, e.translation, u.title AS unit_title
+    FROM curriculum_placements cp JOIN curriculum_units u ON u.id = cp.unit_id AND u.status = 'published'
+    JOIN curricula cr ON cr.id = u.curriculum_id AND cr.status = 'published'
+    JOIN examples e ON (e.vocabulary_id = cp.vocabulary_id OR e.character_id = cp.character_id) AND e.status = 'approved' AND e.locale = 'id'
+    WHERE cp.vocabulary_id IS NOT NULL OR cp.character_id IS NOT NULL
+    UNION
+    SELECT 'dialogue', dt.id, dt.simplified_text, '', dt.translation, u.title
+    FROM dialogue_turns dt JOIN dialogues d ON d.id = dt.dialogue_id AND d.status = 'approved'
+    JOIN curriculum_units u ON u.id = d.unit_id AND u.status = 'published'
+    JOIN curricula cr ON cr.id = u.curriculum_id AND cr.status = 'published'
+    WHERE dt.status = 'approved'
+    UNION
+    SELECT 'story', sp.id, sp.simplified_text, '', sp.translation, u.title
+    FROM story_paragraphs sp JOIN stories s ON s.id = sp.story_id AND s.status = 'approved'
+    JOIN curriculum_units u ON u.id = s.unit_id AND u.status = 'published'
+    JOIN curricula cr ON cr.id = u.curriculum_id AND cr.status = 'published'
+    WHERE sp.status = 'approved'
+  ) ORDER BY text, target_type, target_id LIMIT 500`;
+const linkedSentenceTextsSql = `
+  SELECT e.simplified_text AS text FROM example_audio_links l JOIN examples e ON e.id = l.example_id JOIN content_audio_assets a ON a.id = l.asset_id JOIN asset_sources s ON s.id = a.source_id
+  WHERE l.role = 'primary' AND a.status IN ('candidate','approved') AND s.license_verification = 'verified' AND (a.pronunciation_review = 'passed' OR a.source_attested_at IS NOT NULL OR a.status = 'candidate')
+  UNION SELECT d.simplified_text FROM dialogue_turn_audio_links l JOIN dialogue_turns d ON d.id = l.dialogue_turn_id JOIN content_audio_assets a ON a.id = l.asset_id JOIN asset_sources s ON s.id = a.source_id
+  WHERE l.role = 'primary' AND a.status IN ('candidate','approved') AND s.license_verification = 'verified' AND (a.pronunciation_review = 'passed' OR a.source_attested_at IS NOT NULL OR a.status = 'candidate')
+  UNION SELECT p.simplified_text FROM story_paragraph_audio_links l JOIN story_paragraphs p ON p.id = l.story_paragraph_id JOIN content_audio_assets a ON a.id = l.asset_id JOIN asset_sources s ON s.id = a.source_id
+  WHERE l.role = 'primary' AND a.status IN ('candidate','approved') AND s.license_verification = 'verified' AND (a.pronunciation_review = 'passed' OR a.source_attested_at IS NOT NULL OR a.status = 'candidate')`;
+function spokenTextKey(value: string): string {
+  return simplifyTraditionalCharacter(value).normalize("NFC").replace(/[。．.!！?？、，,；;：:\s]+/gu, "");
 }
 
 async function requirePrincipal(c: Context<AppEnv>): Promise<Principal> {
@@ -1184,6 +1251,126 @@ app.get("/api/v1/admin/learners/:learnerId", async (c) => {
     activity: daily.results, freehand: freehand.results });
 });
 
+app.get("/api/v1/admin/sentence-audio-prompts", async (c) => {
+  const { principal, role } = await requireRole(c, ["owner_admin"]);
+  if (!principal) return jsonError("unauthenticated", "Masuk sebagai administrator.", 401);
+  if (!role) return jsonError("forbidden", "Akses pemilik diperlukan.", 403);
+  const [targets, linked] = await Promise.all([
+    c.env.DB.prepare(publishedSentenceTargetsSql).all<SentenceAudioTarget>(),
+    c.env.DB.prepare(linkedSentenceTextsSql).all<{ text: string }>(),
+  ]);
+  const covered = new Set(linked.results.map((row) => spokenTextKey(row.text)));
+  const seen = new Set<string>();
+  const prompts = targets.results.filter((target) => {
+    const key = spokenTextKey(target.text);
+    if (!key || covered.has(key) || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return c.json({ prompts });
+});
+
+app.post("/api/v1/admin/sentence-audio-recordings", async (c) => {
+  const { principal, role } = await requireRole(c, ["owner_admin"]);
+  if (!principal) return jsonError("unauthenticated", "Masuk sebagai administrator.", 401);
+  if (!role) return jsonError("forbidden", "Akses pemilik diperlukan.", 403);
+  const form = await c.req.formData().catch(() => null);
+  if (!form) return jsonError("invalid_request", "Formulir rekaman tidak valid.");
+  const fields = parseBody(z.object({
+    targetType: z.enum(["example", "dialogue", "story"]),
+    targetId: idSchema,
+    speakerDisplayName: z.string().trim().min(2).max(80),
+    consent: z.literal("accepted"),
+    exactLineConfirmed: z.literal("yes"),
+  }).strict(), {
+    targetType: form.get("targetType"),
+    targetId: form.get("targetId"),
+    speakerDisplayName: form.get("speakerDisplayName"),
+    consent: form.get("consent"),
+    exactLineConfirmed: form.get("exactLineConfirmed"),
+  });
+  const recording = form.get("recording");
+  if (!fields || !(recording instanceof File) || recording.size < 1 || recording.size > 1_500_000) {
+    return jsonError("invalid_recording", "Nama, izin publikasi, dan rekaman WAV hingga 1,5 MB diperlukan.");
+  }
+  const wavBytes = await recording.arrayBuffer();
+  const durationMs = getPcmWavDurationMs(wavBytes);
+  if (!durationMs) return jsonError("invalid_wav", "Rekaman harus berupa WAV PCM yang utuh, berdurasi 0,5–30 detik.");
+  const lookups = {
+    example: "SELECT simplified_text AS text FROM examples WHERE id = ? AND status = 'approved'",
+    dialogue: "SELECT dt.simplified_text AS text FROM dialogue_turns dt JOIN dialogues d ON d.id = dt.dialogue_id WHERE dt.id = ? AND dt.status = 'approved' AND d.status = 'approved'",
+    story: "SELECT sp.simplified_text AS text FROM story_paragraphs sp JOIN stories s ON s.id = sp.story_id WHERE sp.id = ? AND sp.status = 'approved' AND s.status = 'approved'",
+  } as const;
+  const target = await c.env.DB.prepare(lookups[fields.targetType]).bind(fields.targetId).first<{ text: string }>();
+  if (!target) return jsonError("sentence_target_not_found", "Kalimat ini tidak lagi tersedia untuk direkam.", 404);
+  const spokenKey = spokenTextKey(target.text);
+  const linkedTexts = await c.env.DB.prepare(linkedSentenceTextsSql).all<{ text: string }>();
+  if (linkedTexts.results.some((row) => spokenTextKey(row.text) === spokenKey)) {
+    return jsonError("sentence_already_recorded", "Kalimat ini sudah memiliki rekaman terbit.", 409);
+  }
+  const idSuffix = crypto.randomUUID().replace(/-/g, "");
+  const assetId = `snt-human-${idSuffix}`;
+  const sourceId = `source-human-recording-${idSuffix}`;
+  const storageKey = `media/sentence-recordings/${assetId}.wav`;
+  const checksum = [...new Uint8Array(await crypto.subtle.digest("SHA-256", wavBytes))].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  const consentVersion = "mandarinlearnapp-human-recording-cc-by-4.0-v1";
+  const consentAt = new Date().toISOString();
+  const speaker = fields.speakerDisplayName;
+  const sourceUrl = "https://mandarinlearnapp.wangzi102410.workers.dev/credits#human-recordings";
+  try {
+    const links: D1PreparedStatement[] = [];
+    const matchingTargets = (await c.env.DB.prepare(publishedSentenceTargetsSql).all<SentenceAudioTarget>()).results
+      .filter((row) => spokenTextKey(row.text) === spokenKey);
+    for (const row of matchingTargets) {
+      if (row.targetType === "example") links.push(c.env.DB.prepare("INSERT OR IGNORE INTO example_audio_links(example_id, asset_id, role, ordinal) VALUES (?, ?, 'primary', 0)").bind(row.targetId, assetId));
+      else if (row.targetType === "dialogue") links.push(c.env.DB.prepare("INSERT OR IGNORE INTO dialogue_turn_audio_links(dialogue_turn_id, asset_id, role, ordinal) VALUES (?, ?, 'primary', 0)").bind(row.targetId, assetId));
+      else links.push(c.env.DB.prepare("INSERT OR IGNORE INTO story_paragraph_audio_links(story_paragraph_id, asset_id, role, ordinal) VALUES (?, ?, 'primary', 0)").bind(row.targetId, assetId));
+    }
+    if (!links.length) throw new Error("No approved target links were found.");
+    await c.env.DB.batch([
+      c.env.DB.prepare(`INSERT INTO asset_sources(id, name, version, source_url, license_id, license_url, attribution, checksum, notes,
+        license_verification, verification_method, verified_at) VALUES (?, ?, '1', ?, 'CC BY 4.0', 'https://creativecommons.org/licenses/by/4.0/', ?, ?, ?,
+        'verified', 'speaker_consent_and_admin_recording', ?)`)
+        .bind(sourceId, `Human sentence recording: ${speaker}`, sourceUrl, `${speaker}, MandarinLearnApp recording contributor`, checksum,
+          `Speaker consent ${consentVersion}; exact displayed sentence affirmed: ${target.text}`, consentAt),
+      c.env.DB.prepare(`INSERT INTO content_audio_assets(id, source_id, storage_key, sha256, original_sha256, format, size_bytes, duration_ms,
+        speaker_id, dialect, recording_context, source_page_url, pronunciation_review, status, recording_method, contributor_display_name,
+        contributor_consent_version, contributor_consent_at)
+        VALUES (?, ?, ?, ?, ?, 'audio/wav', ?, ?, ?, 'zh-CN', ?, ?, 'pending', 'candidate', 'in_app_human', ?, ?, ?)`)
+        .bind(assetId, sourceId, storageKey, checksum, checksum, wavBytes.byteLength, durationMs, speaker,
+          `Human recording of the exact published sentence: ${target.text}`, sourceUrl, speaker, consentVersion, consentAt),
+      c.env.DB.prepare("INSERT INTO sentence_audio_media(asset_id, storage_key, sha256, media_bytes) VALUES (?, ?, ?, ?)")
+        .bind(assetId, storageKey, checksum, wavBytes),
+      ...links,
+    ]);
+  } catch (error) {
+    console.error(JSON.stringify({ category: "sentence_audio_intake_failed", assetId, requestId: c.get("requestId"), error: String(error) }));
+    return jsonError("recording_save_failed", "Rekaman belum tersimpan. Coba lagi.", 500);
+  }
+  await addAudit(c.env.DB, c.get("requestId"), principal.id, "admin.sentence_audio.recorded", "content_audio_asset", assetId, "success", {
+    targetType: fields.targetType, targetId: fields.targetId, durationMs, bytes: wavBytes.byteLength,
+  });
+  return c.json({ ok: true, assetId, reviewStatus: "candidate", text: target.text, durationMs }, 201);
+});
+
+app.get("/api/v1/audio-credits/sentences", async (c) => {
+  const rows = await c.env.DB.prepare(`SELECT DISTINCT a.id, targets.text, a.contributor_display_name AS recordedBy,
+      s.name AS creator, s.attribution, s.license_id AS license, s.license_url AS licenseUrl,
+      a.source_page_url AS sourcePage
+    FROM content_audio_assets a JOIN asset_sources s ON s.id = a.source_id
+    JOIN (
+      SELECT l.asset_id, e.simplified_text AS text FROM example_audio_links l JOIN examples e ON e.id = l.example_id
+      UNION ALL
+      SELECT l.asset_id, d.simplified_text AS text FROM dialogue_turn_audio_links l JOIN dialogue_turns d ON d.id = l.dialogue_turn_id
+      UNION ALL
+      SELECT l.asset_id, p.simplified_text AS text FROM story_paragraph_audio_links l JOIN story_paragraphs p ON p.id = l.story_paragraph_id
+    ) targets ON targets.asset_id = a.id
+    WHERE a.status = 'approved' AND s.license_verification = 'verified'
+      AND (a.pronunciation_review = 'passed' OR a.source_attested_at IS NOT NULL)
+    ORDER BY targets.text, a.id`).all();
+  return c.json({ assets: rows.results });
+});
+
 app.get("/api/v1/admin/content/review-queue", async (c) => {
   const { principal, role } = await requireRole(c, ["owner_admin", "content_reviewer"]);
   if (!principal) return jsonError("unauthenticated", "Masuk sebagai reviewer.", 401);
@@ -1264,6 +1451,9 @@ app.patch("/api/v1/admin/audio/:audioId", async (c) => {
   const found = (result.meta.changes ?? 0) > 0;
   await addAudit(c.env.DB, c.get("requestId"), principal.id, `admin.audio.${body.decision}`, sentenceAsset ? "content_audio_asset" : "audio_asset", c.req.param("audioId"), found ? "success" : "failure", { note: body.note });
   if (!found) return jsonError("not_found", "Kandidat audio tidak ditemukan.", 404);
+  if (sentenceAsset && body.decision === "failed") {
+    await c.env.DB.prepare("DELETE FROM sentence_audio_media WHERE asset_id = ?").bind(c.req.param("audioId")).run();
+  }
   return c.json({ ok: true, status });
 });
 

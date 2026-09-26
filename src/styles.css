@@ -524,6 +524,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .audio-meta > strong small { margin-left: 5px; color: #6e7381; font-family: inherit; font-size: 10px; }
 .audio-meta p { margin: 5px 0; color: #767b89; font-size: 9px; }
 .audio-meta > small { display: block; overflow-wrap: anywhere; color: #9a9eaa; font-size: 8px; }
+.sentence-recording-studio .panel-head { align-items: flex-start; }
+.recording-queue-count { flex: 0 0 auto; padding: 6px 9px; border-radius: 999px; background: #fff4df; color: #885200; font-size: 11px; font-weight: 800; }
+.recording-workspace { display: grid; gap: 14px; }
+.recording-prompt { min-height: 145px; padding: 20px; border: 1px solid #eee3d4; border-radius: 14px; background: #fffaf2; display: grid; justify-items: start; gap: 8px; }
+.recording-prompt small { color: #9b690b; font-size: 10px; font-weight: 800; }
+.recording-prompt strong { color: #1c2d4a; font-family: serif; font-size: clamp(24px, 3vw, 36px); line-height: 1.4; }
+.recording-prompt > span, .recording-prompt > p { margin: 0; color: #71788a; font-size: 13px; }
+.recording-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+.recording-controls audio { width: min(100%, 380px); height: 40px; }
+.recording-speaker { display: grid; gap: 6px; color: #4a5262; font-size: 12px; font-weight: 700; }
+.recording-speaker input { width: min(100%, 440px); min-height: 42px; padding: 0 12px; border: 1px solid #dfe3eb; border-radius: 10px; background: white; color: #202d46; font: inherit; }
+.recording-consent { max-width: 900px; display: flex; align-items: flex-start; gap: 8px; color: #626a7b; font-size: 11px; line-height: 1.6; }
+.recording-consent input { flex: 0 0 auto; margin-top: 2px; accent-color: #ad6700; }
+.recording-empty { min-height: 100px; display: flex; align-items: center; gap: 10px; color: #18765f; }
+.recording-empty strong { color: #30394a; font-size: 13px; }
 .audit-outcome { padding: 4px 6px; border-radius: 6px; background: #eaf8f2; color: #0e8062; font-size: 8px; }
 .outcome-failure, .outcome-denied { background: #fff0ef; color: #a23c3c; }
 .mobile-admin-menu, .sidebar-scrim { display: none; }
