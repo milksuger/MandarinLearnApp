@@ -1386,7 +1386,7 @@ app.get("/api/v1/admin/content/review-queue", async (c) => {
       a.source_page_url AS sourcePageUrl, a.source_attested_at AS sourceAttestedAt,
       a.source_attestation_method AS sourceAttestationMethod
       FROM audio_assets a JOIN readings r ON r.id = a.reading_id JOIN asset_sources s ON s.id = a.source_id
-      WHERE a.status = 'candidate' OR (a.status = 'approved' AND a.source_attested_at IS NOT NULL)
+      WHERE a.status = 'candidate' OR (a.status = 'approved' AND a.source_attested_at IS NOT NULL AND a.pronunciation_review = 'pending')
       ORDER BY a.created_at LIMIT 100`).all(),
     c.env.DB.prepare(`SELECT a.id, targets.text, '' AS pinyin, a.dialect, a.recording_context AS recordingContext,
       'sentence' AS assetType, a.format, a.size_bytes AS sizeBytes, a.duration_ms AS durationMs, a.sha256, a.status,
@@ -1401,7 +1401,7 @@ app.get("/api/v1/admin/content/review-queue", async (c) => {
         UNION ALL
         SELECT l.asset_id, p.simplified_text AS text FROM story_paragraph_audio_links l JOIN story_paragraphs p ON p.id = l.story_paragraph_id
       ) targets ON targets.asset_id = a.id
-      WHERE a.status = 'candidate' OR (a.status = 'approved' AND a.source_attested_at IS NOT NULL)
+      WHERE a.status = 'candidate' OR (a.status = 'approved' AND a.source_attested_at IS NOT NULL AND a.pronunciation_review = 'pending')
       ORDER BY a.created_at LIMIT 100`).all(),
   ]);
   return c.json({ vocabulary: words.results, characters: characters.results, readings: readings.results,
