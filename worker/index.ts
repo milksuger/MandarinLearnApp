@@ -896,14 +896,109 @@ app.get("/api/v1/reviews", async (c) => {
   const allowedSkills = ["listening","speaking","reading","writing","grammar","vocabulary","comprehension"];
   if (skill && !allowedSkills.includes(skill)) return jsonError("invalid_filter", "Filter keterampilan tidak valid.");
   const rows = await c.env.DB.prepare(`SELECT rs.content_type AS contentType, rs.content_id AS contentId, rs.due_at AS dueAt,
-    rs.reading_id AS readingId, rs.skill, v.simplified_form AS word, ch.hanzi AS character
+    rs.reading_id AS readingId, rs.skill, v.simplified_form AS word, ch.hanzi AS character,
+    COALESCE(v.simplified_form, ch.hanzi) AS prompt,
+    (SELECT r.numbered_pinyin FROM readings r WHERE r.status = 'approved'
+      AND ((rs.content_type = 'vocabulary' AND r.vocabulary_id = v.id) OR (rs.content_type = 'character' AND r.character_id = ch.id))
+      AND (rs.reading_id IS NULL OR r.id = rs.reading_id)
+      ORDER BY CASE WHEN r.id = rs.reading_id THEN 0 ELSE 1 END, r.id LIMIT 1) AS pinyin,
+    COALESCE(
+      (SELECT g.text FROM vocabulary_glosses vg JOIN glosses g ON g.id = vg.gloss_id
+        WHERE vg.vocabulary_id = v.id AND g.status = 'approved' AND g.locale = 'id' ORDER BY g.id LIMIT 1),
+      (SELECT g.text FROM character_glosses cg JOIN glosses g ON g.id = cg.gloss_id
+        WHERE cg.character_id = ch.id AND g.status = 'approved' AND g.locale = 'id' ORDER BY g.id LIMIT 1)
+    ) AS meaning,
+    (SELECT a.id FROM readings r JOIN audio_assets a ON a.reading_id = r.id
+      JOIN asset_sources s ON s.id = a.source_id
+      WHERE r.status = 'approved' AND a.status = 'approved' AND s.license_verification = 'verified'
+        AND (a.pronunciation_review = 'passed' OR a.source_attested_at IS NOT NULL)
+        AND ((rs.content_type = 'vocabulary' AND r.vocabulary_id = v.id) OR (rs.content_type = 'character' AND r.character_id = ch.id))
+        AND (rs.reading_id IS NULL OR r.id = rs.reading_id)
+      ORDER BY CASE WHEN r.id = rs.reading_id THEN 0 ELSE 1 END, a.pronunciation_review = 'passed' DESC, a.id LIMIT 1) AS audioId
     FROM skill_review_schedules rs
     LEFT JOIN vocabulary_entries v ON rs.content_type = 'vocabulary' AND v.id = rs.content_id AND v.status = 'approved'
     LEFT JOIN characters ch ON rs.content_type = 'character' AND ch.id = rs.content_id AND ch.status = 'approved'
     WHERE rs.user_id = ? AND rs.due_at <= ? AND (? = '' OR rs.skill = ?)
       AND (v.id IS NOT NULL OR ch.id IS NOT NULL) ORDER BY rs.due_at, rs.skill LIMIT 100`)
     .bind(principal.id, new Date().toISOString(), skill, skill).all();
-  return c.json({ items: rows.results });
+  const scheduleSummary = await c.env.DB.prepare(`SELECT COUNT(CASE WHEN due_at > ? THEN 1 END) AS scheduledCount,
+      MIN(CASE WHEN due_at > ? THEN due_at END) AS nextDueAt
+    FROM skill_review_schedules WHERE user_id = ? AND (? = '' OR skill = ?)`)
+    .bind(new Date().toISOString(), new Date().toISOString(), principal.id, skill, skill).first<{ scheduledCount: number; nextDueAt: string | null }>();
+  return c.json({ items: rows.results, scheduledCount: scheduleSummary?.scheduledCount ?? 0, nextDueAt: scheduleSummary?.nextDueAt ?? null });
+});
+
+app.post("/api/v1/reviews/answer", async (c) => {
+  const principal = await requirePrincipal(c);
+  if (!principal) return jsonError("unauthenticated", "Silakan masuk terlebih dahulu.", 401);
+  const body = parseBody(z.object({
+    idempotencyKey: z.string().uuid(), contentType: z.enum(["vocabulary", "character"]), contentId: idSchema,
+    readingId: idSchema.nullable().optional(), skill: z.enum(["listening","speaking","reading","writing","grammar","vocabulary","comprehension"]),
+    rating: z.enum(["remembered","uncertain","repeat"]),
+  }).strict(), await c.req.json().catch(() => null));
+  if (!body) return jsonError("invalid_request", "Jawaban ulasan tidak valid.");
+  const prior = await c.env.DB.prepare("SELECT accepted_at AS acceptedAt FROM learning_attempts WHERE user_id = ? AND idempotency_key = ?")
+    .bind(principal.id, body.idempotencyKey).first<{ acceptedAt: string }>();
+  if (prior) return c.json({ ok: true, duplicate: true, acceptedAt: prior.acceptedAt });
+  const readingId = body.readingId ?? null;
+  const schedule = await c.env.DB.prepare(`SELECT interval_days AS intervalDays, ease_factor AS easeFactor, repetition
+    FROM skill_review_schedules WHERE user_id = ? AND content_type = ? AND content_id = ?
+      AND reading_key = COALESCE(?, '') AND skill = ? AND due_at <= ?`)
+    .bind(principal.id, body.contentType, body.contentId, readingId, body.skill, new Date().toISOString())
+    .first<{ intervalDays: number; easeFactor: number; repetition: number }>();
+  if (!schedule) return jsonError("review_not_due", "Materi ini belum waktunya diulang atau sudah diproses.", 409);
+  const content = body.contentType === "vocabulary"
+    ? await c.env.DB.prepare("SELECT id FROM vocabulary_entries WHERE id = ? AND status = 'approved'").bind(body.contentId).first()
+    : await c.env.DB.prepare("SELECT id FROM characters WHERE id = ? AND status = 'approved'").bind(body.contentId).first();
+  if (!content) return jsonError("content_unavailable", "Materi ini tidak lagi tersedia.", 404);
+  if (readingId) {
+    const reading = await c.env.DB.prepare(`SELECT id FROM readings WHERE id = ? AND status = 'approved' AND
+      ((? = 'vocabulary' AND vocabulary_id = ?) OR (? = 'character' AND character_id = ?))`)
+      .bind(readingId, body.contentType, body.contentId, body.contentType, body.contentId).first();
+    if (!reading) return jsonError("reading_mismatch", "Konteks pelafalan tidak sesuai dengan materi.", 409);
+  }
+  const now = new Date();
+  let nextInterval: number;
+  let nextRepetition: number;
+  let nextEase = schedule.easeFactor;
+  if (body.rating === "remembered") {
+    nextRepetition = schedule.repetition + 1;
+    nextInterval = schedule.repetition === 0 ? 1 : Math.min(365, Math.max(1, schedule.intervalDays * schedule.easeFactor));
+    nextEase = Math.min(3, schedule.easeFactor + 0.05);
+  } else if (body.rating === "uncertain") {
+    nextRepetition = 0; nextInterval = 1; nextEase = Math.max(1.3, schedule.easeFactor - 0.15);
+  } else {
+    nextRepetition = 0; nextInterval = 1 / 144; nextEase = Math.max(1.3, schedule.easeFactor - 0.2);
+  }
+  const dueAt = new Date(now.getTime() + nextInterval * 86400000).toISOString();
+  const outcome = body.rating === "remembered" ? "passed" : body.rating === "repeat" ? "needs_practice" : "uncertain";
+  const mode = body.skill === "listening" ? "listen" : body.skill === "speaking" ? "record_compare" : body.skill === "writing" ? "guided_writing" : "meaning";
+  const dimensions = JSON.stringify({ meaningRecall: body.rating === "remembered" ? "correct" : body.rating === "repeat" ? "needs_practice" : "uncertain", selfAssessment: body.rating === "remembered" ? "confident" : body.rating === "repeat" ? "repeat" : "unsure" });
+  const attemptId = crypto.randomUUID();
+  await c.env.DB.batch([
+    c.env.DB.prepare(`INSERT OR IGNORE INTO learning_attempts
+      (id,user_id,idempotency_key,content_type,content_id,reading_id,skill,activity_mode,dimensions_json,engine_version,created_at_client,accepted_at,assessment_outcome)
+      VALUES (?,?,?,?,?,?,?,?,?,'review-session-v1',?,?,?)`)
+      .bind(attemptId, principal.id, body.idempotencyKey, body.contentType, body.contentId, readingId, body.skill, mode, dimensions, now.toISOString(), now.toISOString(), outcome),
+    c.env.DB.prepare(`INSERT INTO learner_skill_progress(user_id,content_type,content_id,reading_key,reading_id,skill,attempts_count,passed_count,uncertain_count,needs_practice_count,last_seen_at,dimensions_json)
+      SELECT ?,?,?,?,?,?,1,?,?,?, ?,? WHERE EXISTS (SELECT 1 FROM learning_attempts WHERE user_id = ? AND idempotency_key = ?)
+      ON CONFLICT(user_id,content_type,content_id,reading_key,skill) DO UPDATE SET
+        attempts_count=attempts_count+1, passed_count=passed_count+excluded.passed_count,
+        uncertain_count=uncertain_count+excluded.uncertain_count, needs_practice_count=needs_practice_count+excluded.needs_practice_count,
+        last_seen_at=excluded.last_seen_at, dimensions_json=excluded.dimensions_json, updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`)
+      .bind(principal.id, body.contentType, body.contentId, readingId ?? "", readingId, body.skill,
+        outcome === "passed" ? 1 : 0, outcome === "uncertain" ? 1 : 0, outcome === "needs_practice" ? 1 : 0, now.toISOString(), dimensions, principal.id, body.idempotencyKey),
+    c.env.DB.prepare(`INSERT INTO learner_progress(user_id,content_type,content_id,attempts_count,correct_count,last_seen_at,next_review_at,dimension_summary_json)
+      SELECT ?,?,?,1,?,?,?,? WHERE EXISTS (SELECT 1 FROM learning_attempts WHERE user_id = ? AND idempotency_key = ?)
+      ON CONFLICT(user_id,content_type,content_id) DO UPDATE SET attempts_count=attempts_count+1,
+        correct_count=correct_count+excluded.correct_count,last_seen_at=excluded.last_seen_at,next_review_at=excluded.next_review_at,
+        dimension_summary_json=excluded.dimension_summary_json,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`)
+      .bind(principal.id, body.contentType, body.contentId, outcome === "passed" ? 1 : 0, now.toISOString(), dueAt, dimensions, principal.id, body.idempotencyKey),
+    c.env.DB.prepare(`UPDATE skill_review_schedules SET interval_days=?,ease_factor=?,repetition=?,due_at=?,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+      WHERE user_id=? AND content_type=? AND content_id=? AND reading_key=COALESCE(?, '') AND skill=? AND due_at<=?`)
+      .bind(nextInterval, nextEase, nextRepetition, dueAt, principal.id, body.contentType, body.contentId, readingId, body.skill, now.toISOString()),
+  ]);
+  return c.json({ ok: true, duplicate: false, outcome, dueAt, intervalDays: nextInterval });
 });
 
 app.get("/api/v1/community/feed", async (c) => {
