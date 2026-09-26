@@ -54,7 +54,7 @@ Candidate discovery must not add rows to published content automatically. The im
 
 ## Coverage found for this release
 
-The source scan covered 130 unique published examples, dialogue turns, and story paragraphs. It found three exact Tatoeba candidates, but all had blank per-file licenses and therefore could not be reused. The existing licensed `你好` recording is safely linked to the exact spoken phrase `你好！` because the only difference is terminal punctuation. Thus one target has a verified human recording and 129 remain uncovered. The user requires sentence playback to use human recordings only; uncovered sentence controls stay disabled. Do not claim full sentence-audio coverage or replace the missing recordings with device speech.
+The source scan covered 130 unique published examples, dialogue turns, and story paragraphs. It found three exact Tatoeba candidates, but all had blank per-file licenses and therefore could not be reused. Mozilla Common Voice 27.0 has a large `zh-CN` corpus under CC0-1.0, but its dataset page forbids re-hosting or re-sharing; it was not imported. A smaller Common Voice 26.0 Beijing Chinese segment has 2,860 CC0 clips and no listed re-hosting restriction, but its API-key-protected archive was not available for exact transcript matching. The existing licensed `你好` recording is safely linked to the exact spoken phrase `你好！` because the only difference is terminal punctuation. Thus one target has a verified human recording and 129 remain uncovered until further corpus checks. The user requires sentence playback to use human recordings only; uncovered sentence controls stay disabled. Do not claim full sentence-audio coverage or replace the missing recordings with device speech.
 
 ## Validation and rollout
 
