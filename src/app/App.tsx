@@ -1056,7 +1056,7 @@ function SentenceAudioRecordingStudio({ onUploaded }: { onUploaded: () => void }
       setPrompts(result.prompts);
       setCurrentIndex(0);
       setError("");
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Tidak dapat memuat antrean kalimat."); }
+    } catch { setError("无法读取待录句子，请确认已登录管理员账号后刷新页面。"); }
   };
   useEffect(() => { void loadPrompts(); return () => {
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
@@ -1083,14 +1083,14 @@ function SentenceAudioRecordingStudio({ onUploaded }: { onUploaded: () => void }
         streamRef.current = null;
         const source = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
         void recordedBlobToWav(source).then((result) => { setWav(result); setPreviewUrl(URL.createObjectURL(result)); })
-          .catch((cause) => setError(cause instanceof Error ? cause.message : "Tidak dapat menyiapkan audio WAV."));
+          .catch(() => setError("录音转换失败，请重新录制并试听。"));
       };
       recorder.start(250);
       setRecording(true);
       timerRef.current = window.setTimeout(() => {
         if (recorder.state === "recording") { recorder.stop(); setRecording(false); setNotice("Rekaman mencapai batas 29 detik. Dengarkan dahulu sebelum mengirim."); }
       }, 29_000);
-    } catch (cause) { streamRef.current?.getTracks().forEach((track) => track.stop()); streamRef.current = null; setError(cause instanceof Error ? cause.message : "Izin mikrofon tidak diberikan."); }
+    } catch { streamRef.current?.getTracks().forEach((track) => track.stop()); streamRef.current = null; setError("无法访问麦克风，请在浏览器中允许麦克风权限后重试。"); }
   };
   const stopRecording = () => {
     if (timerRef.current !== null) window.clearTimeout(timerRef.current);
@@ -1109,26 +1109,26 @@ function SentenceAudioRecordingStudio({ onUploaded }: { onUploaded: () => void }
     form.set("recording", wav, "human-sentence.wav");
     try {
       const saved = await api<{ assetId: string; text: string }>("/admin/sentence-audio-recordings", { method: "POST", body: form });
-      setNotice(`Rekaman untuk “${saved.text}” masuk antrean pemeriksaan.`);
+      setNotice(`“${saved.text}”已录入，等待审核。`);
       clearPreview(); setConsent(false); setExactConfirmed(false);
       await loadPrompts(); onUploaded();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Rekaman belum tersimpan."); }
+    } catch { setError("提交失败，请检查网络后重试；如果提示已录制，请刷新列表继续下一句。"); }
     finally { setSaving(false); }
   };
   return <section className="admin-panel sentence-recording-studio">
-    <div className="panel-head"><div><h2>Rekam audio kalimat</h2><p>Ucapkan tepat sesuai teks. Audio baru dipublikasikan setelah admin memeriksa kecocokan dan kualitasnya.</p></div><span className="recording-queue-count">{prompts.length} kalimat</span></div>
+    <div className="panel-head"><div><h2>真人句子录音</h2><p>逐字朗读下方简体中文，先试听，再提交。审核通过后，学习者才能听到这条录音。</p></div><span className="recording-queue-count">还需录 {prompts.length} 句</span></div>
     {notice && <InlineNotice>{notice}</InlineNotice>}{error && <InlineNotice tone="danger">{error}</InlineNotice>}
-    {!prompt ? <div className="recording-empty"><Headphones aria-hidden="true" /><strong>Tidak ada kalimat yang menunggu rekaman baru. Periksa audio kandidat yang masih menunggu persetujuan.</strong></div> : <div className="recording-workspace">
-      <div className="recording-prompt"><small>{prompt.unitTitle} · {prompt.targetType === "dialogue" ? "Dialog" : prompt.targetType === "story" ? "Cerita" : "Contoh"}</small><strong lang="zh-CN">{prompt.text}</strong>{prompt.pinyin && <span>{prompt.pinyin}</span>}<p>{prompt.translation}</p></div>
+    {!prompt ? <div className="recording-empty"><Headphones aria-hidden="true" /><strong>没有待录句子了。请检查下方审核队列中是否还有待试听的录音。</strong></div> : <div className="recording-workspace">
+      <div className="recording-prompt"><small>{prompt.unitTitle} · {prompt.targetType === "dialogue" ? "对话" : prompt.targetType === "story" ? "故事" : "例句"}</small><strong lang="zh-CN">{prompt.text}</strong>{prompt.pinyin && <span>{prompt.pinyin}</span>}<p>{prompt.translation}</p></div>
       <div className="recording-controls">
-        {!recording ? <button className="button button-primary" onClick={() => void startRecording()}><Mic size={16} />Mulai merekam</button> : <button className="button button-danger" onClick={stopRecording}><Square size={14} />Hentikan</button>}
+        {!recording ? <button className="button button-primary" onClick={() => void startRecording()}><Mic size={16} />开始录音</button> : <button className="button button-danger" onClick={stopRecording}><Square size={14} />停止录音</button>}
         {previewUrl && <audio controls preload="metadata" src={previewUrl} />}
-        <button className="button button-soft" disabled={recording || saving} onClick={() => { clearPreview(); setConsent(false); setExactConfirmed(false); setCurrentIndex((index) => prompts.length ? (index + 1) % prompts.length : 0); }}><SkipForward size={15} />Lewati kalimat</button>
+        <button className="button button-soft" disabled={recording || saving} onClick={() => { clearPreview(); setConsent(false); setExactConfirmed(false); setCurrentIndex((index) => prompts.length ? (index + 1) % prompts.length : 0); }}><SkipForward size={15} />跳过这句</button>
       </div>
-      <label className="recording-speaker">Nama yang ditampilkan sebagai pembaca<input value={speakerName} maxLength={80} onChange={(event) => setSpeakerName(event.target.value)} placeholder="Nama atau nama panggilan" /></label>
-      <label className="recording-consent"><input type="checkbox" checked={exactConfirmed} onChange={(event) => setExactConfirmed(event.target.checked)} />Saya sendiri yang mengucapkan seluruh kalimat Mandarin yang tampil; rekaman ini bukan suara sintetis.</label>
-      <label className="recording-consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />Saya memiliki hak atas rekaman ini dan mengizinkan audio serta nama tampilan saya dipublikasikan dengan lisensi CC BY 4.0. Pengguna boleh menyalin dan mengadaptasinya dengan atribusi.</label>
-      <button className="button button-primary" disabled={!wav || !speakerName.trim() || !consent || !exactConfirmed || saving || recording} onClick={() => void uploadRecording()}>{saving ? "Menyimpan…" : "Kirim ke pemeriksaan"}</button>
+      <label className="recording-speaker">录音人公开署名<input value={speakerName} maxLength={80} onChange={(event) => setSpeakerName(event.target.value)} placeholder="姓名或昵称（会公开显示）" /></label>
+      <label className="recording-consent"><input type="checkbox" checked={exactConfirmed} onChange={(event) => setExactConfirmed(event.target.checked)} />我本人用真人声音完整读出了上方句子，没有使用合成语音。</label>
+      <label className="recording-consent"><input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />我拥有这段录音的发布权，并同意以 CC BY 4.0 和上述署名公开；他人可以在注明来源后复制和改编。</label>
+      <button className="button button-primary" disabled={!wav || !speakerName.trim() || !consent || !exactConfirmed || saving || recording} onClick={() => void uploadRecording()}>{saving ? "正在提交…" : "试听后提交审核"}</button>
     </div>}
   </section>;
 }
@@ -1142,7 +1142,7 @@ function AdminContent() {
   const audioReview = async (id: string, decision: "passed" | "failed") => { try { await api(`/admin/audio/${id}`, { method: "PATCH", body: JSON.stringify({ decision, note: "Checked against the exact displayed Mandarin reading and context." }) }); setNotice("Hasil pemeriksaan audio tersimpan."); load(); } catch (cause) { setNotice(cause instanceof Error ? cause.message : "Hasil pemeriksaan belum dapat disimpan."); } };
   return <><AdminPageHead eyebrow="KUALITAS MATERI" title="Konten & audio" subtitle="Materi dari sumber lisensi terbuka dapat aktif otomatis setelah sumber dan metadata cocok; antrian ini tetap menyediakan pemutaran, penolakan, dan pemeriksaan ulang." />{error && <InlineNotice tone="danger">{error}</InlineNotice>}{notice && <InlineNotice>{notice}</InlineNotice>}{queue && <><ReviewGroup title="Kosakata" items={queue.vocabulary} kind="vocabulary" onReview={review} /><ReviewGroup title="Karakter & data guratan" items={queue.characters.map((item) => ({ ...item, text: `${item.text} · guratan: ${item.strokeStatus}` }))} kind="character" onReview={review} /><ReviewGroup title="Pelafalan / Pinyin" items={queue.readings.map((item) => ({ ...item, text: `${item.text} · ${item.pinyin}` }))} kind="reading" onReview={review} />
     <SentenceAudioRecordingStudio onUploaded={load} />
-    <section className="admin-panel review-section"><div className="panel-head"><div><h2>Audio tersumber & kandidat</h2><p>Rekaman sumber dapat aktif tanpa keputusan per file; putar kembali atau tolak bila ada masalah.</p></div></div>{queue.audio.length ? queue.audio.map((audio) => <div className="audio-review-card" key={audio.id}><div className="audio-meta"><strong>{audio.text} <small>{audio.pinyin}</small></strong><p>{audio.assetType === "sentence" ? "Audio kalimat" : "Audio kosakata"} · {audio.sourceName} · {audio.license} {audio.sourceAttestedAt ? "· sumber cocok" : "· menunggu sumber/review"}</p><p>{audio.recordingContext} · {audio.dialect} · {(audio.sizeBytes / 1024).toFixed(1)} KB · {audio.durationMs} ms</p><small>Checksum {audio.sha256.slice(0, 16)}… · atribusi: {audio.attribution}</small><p><a href={audio.sourcePageUrl} target="_blank" rel="noreferrer">Buka file sumber</a> · <a href={audio.licenseUrl} target="_blank" rel="noreferrer">Lisensi</a></p><audio controls preload="none" src={audioUrl(audio.id) ?? undefined} /></div><div className="audio-review-actions"><button className="button button-soft" onClick={() => void audioReview(audio.id, "failed")}>Tolak</button><button className="button button-primary" onClick={() => void audioReview(audio.id, "passed")}>Tandai cocok</button></div></div>) : <div className="table-empty">Belum ada file audio kandidat atau tersumber.</div>}</section></>}</>;
+    <section className="admin-panel review-section"><div className="panel-head"><div><h2>音频试听与审核</h2><p>逐句对照课程文本试听。确认是真人完整朗读且文字完全一致后，再通过审核。</p></div></div>{queue.audio.length ? queue.audio.map((audio) => <div className="audio-review-card" key={audio.id}><div className="audio-meta"><strong>{audio.text} <small>{audio.pinyin}</small></strong><p>{audio.assetType === "sentence" ? "句子录音" : "词语录音"} · {audio.sourceName} · {audio.license} {audio.sourceAttestedAt ? "· 来源已核实" : "· 等待审核"}</p><p>{audio.recordingContext} · {audio.dialect} · {(audio.sizeBytes / 1024).toFixed(1)} KB · {audio.durationMs} 毫秒</p><small>校验码 {audio.sha256.slice(0, 16)}… · 署名：{audio.attribution}</small><p><a href={audio.sourcePageUrl} target="_blank" rel="noreferrer">查看来源</a> · <a href={audio.licenseUrl} target="_blank" rel="noreferrer">查看许可</a></p><audio controls preload="none" src={audioUrl(audio.id) ?? undefined} /></div><div className="audio-review-actions"><button className="button button-soft" onClick={() => void audioReview(audio.id, "failed")}>不匹配，拒绝</button><button className="button button-primary" onClick={() => void audioReview(audio.id, "passed")}>试听后通过</button></div></div>) : <div className="table-empty">暂无等待审核的录音。</div>}</section></>}</>;
 }
 
 function ReviewGroup({ title, items, kind, onReview }: { title: string; items: Array<{ id: string; text: string; status: string; sourceId: string }>; kind: string; onReview: (kind: string, id: string, status: string) => void }) { return <section className="admin-panel review-section"><div className="panel-head"><div><h2>{title}</h2><p>{items.length} item menunggu keputusan</p></div></div>{items.length ? items.map((item) => <div className="content-review-row" key={item.id}><span className="hanzi-thumb">{item.text.slice(0, 1)}</span><div><strong>{item.text}</strong><small>Sumber: {item.sourceId} · {item.status}</small></div><div className="review-actions"><button className="button button-soft" onClick={() => onReview(kind, item.id, "rejected")}>Tolak</button><button className="button button-primary" onClick={() => onReview(kind, item.id, "approved")}>Setujui</button></div></div>) : <div className="table-empty">Tidak ada draf pada antrian ini.</div>}</section>; }
